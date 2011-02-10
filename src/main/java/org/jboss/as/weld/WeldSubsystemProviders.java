@@ -33,9 +33,9 @@ import org.jboss.dmr.ModelNode;
 /**
  * @author Emanuel Muckenhuber
  */
-class NewWeldSubsystemProviders {
+class WeldSubsystemProviders {
 
-    static final String RESOURCE_NAME = NewWeldSubsystemProviders.class.getPackage().getName() + ".LocalDescriptions";
+    static final String RESOURCE_NAME = WeldSubsystemProviders.class.getPackage().getName() + ".LocalDescriptions";
 
     static ModelNode getSubsystemDescription(Locale locale) {
         final ResourceBundle bundle = getResourceBundle(locale);
