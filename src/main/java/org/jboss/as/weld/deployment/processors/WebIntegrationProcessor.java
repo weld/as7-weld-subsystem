@@ -132,11 +132,9 @@ public class WebIntegrationProcessor implements DeploymentUnitProcessor {
         listeners.add(0, WBL);
         listeners.add(1, JIL);
 
-        //This uses resource injection, so it needs to be a component
-        final WebComponentDescription componentDescription = new WebComponentDescription(JSP_LISTENER, JSP_LISTENER, module, deploymentUnit.getServiceName(), applicationClasses);
-        module.addComponent(componentDescription);
-        final Map<String, ComponentInstantiator> instantiators = deploymentUnit.getAttachment(WebAttachments.WEB_COMPONENT_INSTANTIATORS);
-        instantiators.put(JSP_LISTENER, new WebComponentInstantiator(deploymentUnit, componentDescription));
+        //These listeners use resource injection, so they need to be components
+        addListenerAsComponent(WELD_LISTENER, module, deploymentUnit, applicationClasses);
+        addListenerAsComponent(JSP_LISTENER, module, deploymentUnit, applicationClasses);
 
         FiltersMetaData filters = webMetaData.getFilters();
         if (filters == null) {
@@ -155,5 +153,12 @@ public class WebIntegrationProcessor implements DeploymentUnitProcessor {
 
     @Override
     public void undeploy(DeploymentUnit context) {
+    }
+
+    private void addListenerAsComponent(String listener, EEModuleDescription module, DeploymentUnit deploymentUnit, EEApplicationClasses applicationClasses) {
+        final WebComponentDescription componentDescription = new WebComponentDescription(listener, listener, module, deploymentUnit.getServiceName(), applicationClasses);
+        module.addComponent(componentDescription);
+        final Map<String, ComponentInstantiator> instantiators = deploymentUnit.getAttachment(WebAttachments.WEB_COMPONENT_INSTANTIATORS);
+        instantiators.put(listener, new WebComponentInstantiator(deploymentUnit, componentDescription));
     }
 }
