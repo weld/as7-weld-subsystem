@@ -112,7 +112,7 @@ class WeldEEInjection {
 
 
     public static WeldEEInjection createWeldEEInjection(Class<?> componentClass, Bean<?> bean, final BeanManagerImpl beanManager) {
-        final AnnotatedType<?> type = beanManager.getServices().get(ClassTransformer.class).loadClass(componentClass);
+        final AnnotatedType<?> type = beanManager.getServices().get(ClassTransformer.class).getAnnotatedType(componentClass);
         List<InjectableField> injectableFields = new ArrayList<InjectableField>();
         List<InjectableMethod> injectableMethods = new ArrayList<InjectableMethod>();
 
