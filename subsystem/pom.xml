@@ -1,42 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!--
-  ~ JBoss, Home of Professional Open Source.
-  ~ Copyright 2010, Red Hat, Inc., and individual contributors
-  ~ as indicated by the @author tags. See the copyright.txt file in the
-  ~ distribution for a full listing of individual contributors.
-  ~
-  ~ This is free software; you can redistribute it and/or modify it
-  ~ under the terms of the GNU Lesser General Public License as
-  ~ published by the Free Software Foundation; either version 2.1 of
-  ~ the License, or (at your option) any later version.
-  ~
-  ~ This software is distributed in the hope that it will be useful,
-  ~ but WITHOUT ANY WARRANTY; without even the implied warranty of
-  ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
-  ~ Lesser General Public License for more details.
-  ~
-  ~ You should have received a copy of the GNU Lesser General Public
-  ~ License along with this software; if not, write to the Free
-  ~ Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
-  ~ 02110-1301 USA, or see the FSF site: http://www.fsf.org.
-  -->
+<!-- ~ JBoss, Home of Professional Open Source. ~ Copyright 2010, Red Hat, 
+    Inc., and individual contributors ~ as indicated by the @author tags. See 
+    the copyright.txt file in the ~ distribution for a full listing of individual 
+    contributors. ~ ~ This is free software; you can redistribute it and/or modify 
+    it ~ under the terms of the GNU Lesser General Public License as ~ published 
+    by the Free Software Foundation; either version 2.1 of ~ the License, or 
+    (at your option) any later version. ~ ~ This software is distributed in the 
+    hope that it will be useful, ~ but WITHOUT ANY WARRANTY; without even the 
+    implied warranty of ~ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. 
+    See the GNU ~ Lesser General Public License for more details. ~ ~ You should 
+    have received a copy of the GNU Lesser General Public ~ License along with 
+    this software; if not, write to the Free ~ Software Foundation, Inc., 51 
+    Franklin St, Fifth Floor, Boston, MA ~ 02110-1301 USA, or see the FSF site: 
+    http://www.fsf.org. -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
-        <groupId>org.jboss.as</groupId>
-        <artifactId>jboss-as-parent</artifactId>
-        <version>7.1.2.Final</version>
+        <groupId>org.jboss.weld</groupId>
+        <artifactId>as7-weld-subsystem-parent</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
     </parent>
 
-    <groupId>org.jboss.as</groupId>
-    <artifactId>jboss-as-weld</artifactId>
-    <version>7.1.2.Final</version>
+    <artifactId>as7-weld-subsystem</artifactId>
 
-    <name>JBoss Application Server: Weld 2 Integration</name>
+    <name>AS7 Weld Subsystem</name>
 
     <build>
         <plugins>
@@ -74,9 +65,11 @@
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>
-                    <!-- Seems like a hacky way to pass multiple arguments, but it's the only way it worked. -->
+                    <!-- Seems like a hacky way to pass multiple arguments, 
+                        but it's the only way it worked. -->
                     <fork>true</fork>
-                    <compilerArgument>-Djava.endorsed.dirs=${project.build.directory}/endorsed" "-AgeneratedTranslationFilesPath=${project.build.directory}/generated-translation-files</compilerArgument>
+                    <compilerArgument>-Djava.endorsed.dirs=${project.build.directory}/endorsed"
+                        "-AgeneratedTranslationFilesPath=${project.build.directory}/generated-translation-files</compilerArgument>
                 </configuration>
             </plugin>
 
@@ -86,6 +79,11 @@
     <dependencies>
 
         <dependency>
+            <groupId>javax.enterprise</groupId>
+            <artifactId>cdi-api</artifactId>
+        </dependency>
+
+        <dependency>
             <groupId>javax.validation</groupId>
             <artifactId>validation-api</artifactId>
         </dependency>
@@ -93,6 +91,25 @@
         <dependency>
             <groupId>org.hibernate.javax.persistence</groupId>
             <artifactId>hibernate-jpa-2.0-api</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.logging</groupId>
+            <artifactId>jboss-logging</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.logging</groupId>
+            <artifactId>jboss-logging-processor</artifactId>
+            <!-- This is a compile-time dependency of this project, but is 
+                not needed at compile or runtime by other projects that depend on this project. -->
+            <scope>provided</scope>
+            <optional>true</optional>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.metadata</groupId>
+            <artifactId>jboss-metadata-web</artifactId>
         </dependency>
 
         <dependency>
@@ -126,27 +143,8 @@
         </dependency>
 
         <dependency>
-           <groupId>org.jboss.as</groupId>
-           <artifactId>jboss-as-web</artifactId>
-        </dependency>
-
-        <dependency>
-           <groupId>org.jboss.metadata</groupId>
-           <artifactId>jboss-metadata-web</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jboss.logging</groupId>
-            <artifactId>jboss-logging</artifactId>
-        </dependency>
-
-        <dependency>
-            <groupId>org.jboss.logging</groupId>
-            <artifactId>jboss-logging-processor</artifactId>
-            <!-- This is a compile-time dependency of this project, but is not needed at compile or runtime by other
-                  projects that depend on this project.-->
-            <scope>provided</scope>
-            <optional>true</optional>
+            <groupId>org.jboss.as</groupId>
+            <artifactId>jboss-as-web</artifactId>
         </dependency>
 
         <dependency>
@@ -176,8 +174,8 @@
         </dependency>
 
         <dependency>
-           <groupId>org.jboss.spec.javax.servlet.jsp</groupId>
-           <artifactId>jboss-jsp-api_2.2_spec</artifactId>
+            <groupId>org.jboss.spec.javax.servlet.jsp</groupId>
+            <artifactId>jboss-jsp-api_2.2_spec</artifactId>
         </dependency>
 
         <dependency>
