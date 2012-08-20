@@ -29,6 +29,7 @@ import java.util.Set;
 
 import javax.enterprise.inject.spi.BeanManager;
 
+import org.jboss.as.weld.deployment.BeanDeploymentArchiveImpl;
 import org.jboss.as.weld.deployment.WeldDeployment;
 import org.jboss.as.weld.services.ModuleGroupSingletonProvider;
 import org.jboss.weld.bootstrap.WeldBootstrap;
@@ -49,6 +50,7 @@ public class WeldContainer {
     private final WeldDeployment deployment;
     private final Environment environment;
     private final Map<String, BeanDeploymentArchive> beanDeploymentArchives;
+    private final BeanDeploymentArchiveImpl rootBeanDeploymentArchive;
     private volatile boolean started;
 
     public WeldContainer(WeldDeployment deployment, Environment environment) {
@@ -56,10 +58,17 @@ public class WeldContainer {
         this.environment = environment;
         this.bootstrap = new WeldBootstrap();
         Map<String, BeanDeploymentArchive> bdas = new HashMap<String, BeanDeploymentArchive>();
+        BeanDeploymentArchiveImpl rootBeanDeploymentArchive = null;
         for (BeanDeploymentArchive archive : deployment.getBeanDeploymentArchives()) {
             bdas.put(archive.getId(), archive);
+            if (archive instanceof BeanDeploymentArchiveImpl) {
+                BeanDeploymentArchiveImpl bda = (BeanDeploymentArchiveImpl) archive;
+                if (bda.isRoot()) {
+                    rootBeanDeploymentArchive = bda;
+                }
+            }
         }
-        bdas.put(deployment.getAdditionalBeanDeploymentArchive().getId(), deployment.getAdditionalBeanDeploymentArchive());
+        this.rootBeanDeploymentArchive = rootBeanDeploymentArchive;
         this.beanDeploymentArchives = Collections.unmodifiableMap(bdas);
     }
 
@@ -144,12 +153,11 @@ public class WeldContainer {
         if (started) {
             throw WeldMessages.MESSAGES.cannotAddServicesAfterStart();
         }
-        deployment.getServices().add(type, service);
-        deployment.getAdditionalBeanDeploymentArchive().getServices().add(type, service);
+        deployment.addWeldService(type, service);
     }
 
     /**
-     * Gets the {@link BeanManager} linked to the additional classes bean deployment archive. This BeanManager has access to all
+     * Gets the {@link BeanManager} linked to the root bean deployment archive. This BeanManager has access to all
      * beans in a deployment
      *
      * @throws IllegalStateException if the container is not running
@@ -158,7 +166,7 @@ public class WeldContainer {
         if (!started) {
             throw WeldMessages.MESSAGES.notStarted("WeldContainer");
         }
-        return bootstrap.getManager(deployment.getAdditionalBeanDeploymentArchive());
+        return bootstrap.getManager(rootBeanDeploymentArchive);
     }
 
     /**

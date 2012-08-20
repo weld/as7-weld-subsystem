@@ -69,6 +69,7 @@ public class WeldService implements Service<WeldContainer> {
             weldContainer.addWeldService(SecurityServices.class, securityServices.getValue());
             weldContainer.addWeldService(TransactionServices.class, weldTransactionServices.getValue());
 
+            weldContainer.addWeldService(ResourceInjectionServices.class, resourceInjectionServices.getValue());
             for (BeanDeploymentArchive bda : weldContainer.getBeanDeploymentArchives()) {
                 bda.getServices().add(ResourceInjectionServices.class, resourceInjectionServices.getValue());
             }

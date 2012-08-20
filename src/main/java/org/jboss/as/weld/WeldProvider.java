@@ -21,20 +21,20 @@
  */
 package org.jboss.as.weld;
 
+import static org.jboss.weld.util.reflection.Reflections.cast;
+
 import java.util.Map;
 
-import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.CDI;
 import javax.enterprise.inject.spi.CDIProvider;
 
+import org.jboss.as.weld.deployment.BeanDeploymentArchiveImpl;
 import org.jboss.as.weld.deployment.WeldDeployment;
 import org.jboss.weld.Container;
 import org.jboss.weld.Weld;
 import org.jboss.weld.bootstrap.spi.BeanDeploymentArchive;
 import org.jboss.weld.manager.BeanManagerImpl;
 import org.jboss.weld.util.reflection.Reflections;
-
-import com.sun.faces.mgbean.BeanManager;
 
 /**
  * Service provider for {@link CDI}.
@@ -54,18 +54,70 @@ public class WeldProvider implements CDIProvider {
     private static class EnhancedWeld extends Weld<Object> {
 
         /**
-         * If the called of a {@link CDI} method is placed outside of BDA we return the {@link BeanManager} of the additional
-         * bean archive which sees every {@link Bean} deployed in any of the bean archives. No alternatives / interceptors /
-         * decorators are enabled for this {@link BeanManager}.
+         * <p>
+         * If the called of a {@link CDI} method is placed outside of BDA we have two options:
+         * </p>
+         *
+         * <ol>
+         * <li>The class is placed in an archive with no beans.xml but with a CDI extension. In that case there exists an
+         * additional BDA but {@link Weld#getBeanManager()} may not find it since the
+         * {@link BeanDeploymentArchive#getBeanClasses()} of this logical BDA only contains extension classes or classes added
+         * by an extension. Therefore, we are going to iterate over the additional BDAs and try to match them with the
+         * classloader of the caller class.</li>
+         *
+         * <li>The class comes from an archive that is not a BDA nor bundles an extension. In that case we return the root BDA
+         * which may be the BDA for WEB-INF/classes in war deployments or the root BDA of an ear.</li>
+         * </ol>
+         *
          */
         @Override
         protected BeanManagerImpl unsatisfiedBeanManager(String callerClassName) {
+            BeanDeploymentArchiveImpl rootBda = findRootBda();
+            if (rootBda == null) {
+                return super.unsatisfiedBeanManager(callerClassName);
+            }
+
+            Class<?> callingClass = null;
+            try {
+                callingClass = rootBda.getModule().getClassLoader().loadClass(callerClassName);
+            } catch (ClassNotFoundException e) {
+                // fallback to the root bda manager
+                return Container.instance().beanDeploymentArchives().get(rootBda);
+            }
+
+            BeanManagerImpl additionalBdaManager = findBeanManagerForAdditionalBdaWithMatchingClassloader(callingClass.getClassLoader());
+            if (additionalBdaManager != null) {
+                return additionalBdaManager;
+            }
+
+            // fallback to the root bda manager
+            return Container.instance().beanDeploymentArchives().get(rootBda);
+        }
+
+        private BeanDeploymentArchiveImpl findRootBda() {
             for (Map.Entry<BeanDeploymentArchive, BeanManagerImpl> entry : Container.instance().beanDeploymentArchives().entrySet()) {
-                if (entry.getKey().getId().endsWith(WeldDeployment.ADDITIONAL_CLASSES_BDA_SUFFIX)) {
-                    return entry.getValue();
+                if (entry.getKey() instanceof BeanDeploymentArchiveImpl) {
+                    BeanDeploymentArchiveImpl bda = cast(entry.getKey());
+                    if (bda.isRoot()) {
+                        return bda;
+                    }
                 }
             }
-            return super.unsatisfiedBeanManager(callerClassName);
+            return null;
+        }
+
+        private BeanManagerImpl findBeanManagerForAdditionalBdaWithMatchingClassloader(ClassLoader classLoader) {
+            for (Map.Entry<BeanDeploymentArchive, BeanManagerImpl> entry : Container.instance().beanDeploymentArchives().entrySet()) {
+                if (entry.getKey() instanceof BeanDeploymentArchiveImpl) {
+                    BeanDeploymentArchiveImpl bda = cast(entry.getKey());
+                    if (bda.getId().endsWith(WeldDeployment.ADDITIONAL_CLASSES_BDA_SUFFIX)) {
+                        if (bda.getModule() != null && bda.getModule().getClassLoader() != null && bda.getModule().getClassLoader().equals(classLoader)) {
+                            return entry.getValue();
+                        }
+                    }
+                }
+            }
+            return null;
         }
     }
 }
