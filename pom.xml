@@ -155,6 +155,12 @@
 
     <profiles>
         <profile>
+            <id>update-jboss-as</id>
+            <modules>
+                <module>installer</module>
+            </modules>
+        </profile>
+        <profile>
             <id>jboss-public-repository</id>
             <activation>
                 <property>

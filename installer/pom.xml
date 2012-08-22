@@ -1,0 +1,178 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>org.jboss.weld</groupId>
+        <artifactId>as7-weld-subsystem-parent</artifactId>
+        <version>2.0.0-SNAPSHOT</version>
+        <relativePath>../pom.xml</relativePath>
+    </parent>
+
+    <artifactId>as7-weld-updater</artifactId>
+    <packaging>pom</packaging>
+    <name>AS7 Weld Updater</name>
+
+    <!-- Minimal metadata -->
+    <description>A script to update Weld in JBoss AS7</description>
+
+    <dependencies>
+        <dependency>
+            <groupId>org.jboss.weld</groupId>
+            <artifactId>weld-core</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.weld</groupId>
+            <artifactId>as7-weld-subsystem</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+    </dependencies>
+    <build>
+        <defaultGoal>package</defaultGoal>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-dependency-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>copy-dependencies</id>
+                        <phase>process-resources</phase>
+                        <goals>
+                            <goal>copy-dependencies</goal>
+                        </goals>
+                        <configuration>
+                            <outputDirectory>${project.build.directory}/dependency/lib</outputDirectory>
+                            <overWriteSnapshots>true</overWriteSnapshots>
+                            <stripVersion>true</stripVersion>
+                            <includeArtifactIds>cdi-api,weld-api,weld-core,weld-spi,as7-weld-subsystem</includeArtifactIds>
+                        </configuration>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-antrun-plugin</artifactId>
+                <executions>
+                    <execution>
+                        <id>update-jboss-as</id>
+                        <phase>package</phase>
+                        <goals>
+                            <goal>run</goal>
+                        </goals>
+                        <configuration>
+                            <tasks>
+                                <property
+                                    file="${basedir}/local.build.properties" />
+                                <property file="${basedir}/build.properties" />
+                                <property name="jboss.home"
+                                    value="${env.JBOSS_HOME}" />
+                                <property name="module.dir"
+                                    value="${jboss.home}/modules" />
+
+                                <delete>
+                                    <fileset
+                                        dir="${module.dir}/javax/enterprise/api/main"
+                                        includes="*" />
+                                    <fileset
+                                        dir="${module.dir}/org/jboss/weld/core/main"
+                                        includes="*" />
+                                    <fileset
+                                        dir="${module.dir}/org/jboss/weld/spi/main"
+                                        includes="*" />
+                                    <fileset
+                                        dir="${module.dir}/org/jboss/weld/api/main"
+                                        includes="*" />
+                                    <fileset
+                                        dir="${module.dir}/org/jboss/as/weld/main"
+                                        includes="*" />
+                                </delete>
+
+                                <!-- CDI API -->
+                                <copy
+                                    todir="${module.dir}/javax/enterprise/api/main"
+                                    overwrite="true">
+                                    <fileset dir="target/dependency/lib">
+                                        <include name="cdi-api.jar" />
+                                    </fileset>
+                                    <fileset
+                                        dir="src/main/modules/javax/enterprise/api/main">
+                                        <include name="module.xml" />
+                                    </fileset>
+                                </copy>
+
+                                <!-- Weld core -->
+                                <copy
+                                    todir="${module.dir}/org/jboss/weld/core/main"
+                                    overwrite="true">
+                                    <fileset dir="target/dependency/lib">
+                                        <include name="weld-core.jar" />
+                                    </fileset>
+                                    <fileset
+                                        dir="src/main/modules/org/jboss/weld/core/main">
+                                        <include name="module.xml" />
+                                    </fileset>
+                                </copy>
+
+                                <!-- Weld SPI -->
+                                <copy
+                                    todir="${module.dir}/org/jboss/weld/spi/main"
+                                    overwrite="true">
+                                    <fileset dir="target/dependency/lib">
+                                        <include name="weld-spi.jar" />
+                                    </fileset>
+                                    <fileset
+                                        dir="src/main/modules/org/jboss/weld/spi/main">
+                                        <include name="module.xml" />
+                                    </fileset>
+                                </copy>
+
+                                <!-- Weld API -->
+                                <copy
+                                    todir="${module.dir}/org/jboss/weld/api/main"
+                                    overwrite="true">
+                                    <fileset dir="target/dependency/lib">
+                                        <include name="weld-api.jar" />
+                                    </fileset>
+                                    <fileset
+                                        dir="src/main/modules/org/jboss/weld/api/main">
+                                        <include name="module.xml" />
+                                    </fileset>
+                                </copy>
+
+                                <!-- Weld AS7 subsystem -->
+                                <copy
+                                    todir="${module.dir}/org/jboss/as/weld/main"
+                                    overwrite="true">
+                                    <fileset dir="target/dependency/lib">
+                                        <include
+                                            name="as7-weld-subsystem.jar" />
+                                    </fileset>
+                                    <fileset
+                                        dir="src/main/modules/org/jboss/as/weld/main">
+                                        <include name="module.xml" />
+                                    </fileset>
+                                </copy>
+
+                            </tasks>
+                        </configuration>
+                    </execution>
+                </executions>
+                <dependencies>
+                    <dependency>
+                        <groupId>ant</groupId>
+                        <artifactId>ant-nodeps</artifactId>
+                        <version>1.6.5</version>
+                    </dependency>
+                </dependencies>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-deploy-plugin</artifactId>
+                <configuration>
+                    <skip>true</skip>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+
+</project>
