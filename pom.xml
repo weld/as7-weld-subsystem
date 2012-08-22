@@ -50,6 +50,7 @@
         <jboss.msc.version>1.0.2.GA</jboss.msc.version>
         <jboss.vfs.version>3.1.0.Final</jboss.vfs.version>
         <weld.version>2.0.0-SNAPSHOT</weld.version>
+        <weld.spi.version>2.0-SNAPSHOT</weld.spi.version>
     </properties>
 
     <dependencyManagement>
@@ -79,6 +80,12 @@
                 <groupId>org.jboss.logging</groupId>
                 <artifactId>jboss-logging-processor</artifactId>
                 <version>${jboss.logging.processor.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.weld</groupId>
+                <artifactId>weld-spi</artifactId>
+                <version>${weld.spi.version}</version>
             </dependency>
 
             <dependency>
