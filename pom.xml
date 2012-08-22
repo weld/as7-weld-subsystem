@@ -29,7 +29,12 @@
     </licenses>
     <url>http://www.seamframework.org/Weld</url>
 
-    <!-- TODO SCM definitions -->
+    <!-- SCM and distribution management -->
+    <scm>
+        <connection>scm:git:git://github.com/weld/as7-weld-subsystem.git</connection>
+        <developerConnection>scm:git:git://github.com/weld/as7-weld-subsystem.git</developerConnection>
+        <url>scm:git:git://github.com/weld/as7-weld-subsystem.git</url>
+    </scm>
 
     <modules>
         <module>subsystem</module>
