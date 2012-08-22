@@ -28,7 +28,10 @@ import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
+import org.jboss.weld.injection.spi.ResourceReference;
+import org.jboss.weld.injection.spi.ResourceReferenceFactory;
 import org.jboss.weld.injection.spi.helpers.AbstractResourceServices;
+import org.jboss.weld.injection.spi.helpers.SimpleResourceReference;
 
 import javax.annotation.Resource;
 import javax.ejb.TimerService;
@@ -112,8 +115,37 @@ public class WeldResourceInjectionServices extends AbstractResourceServices impl
         return getEJBResourceName(injectionPoint, proposedName);
     }
 
+    /*
+     * FIXME:
+     * This is a trivial implementation that simply reuses the deprecated method.
+     * Reimplement in a way that supports boot time validation an caching. 
+     */
+    @Override
+    public ResourceReferenceFactory<Object> registerResourceInjectionPoint(final InjectionPoint injectionPoint) {
+        return new ResourceReferenceFactory<Object>() {
+            @Override
+            public ResourceReference<Object> createResource() {
+                return new SimpleResourceReference<Object>(resolveResource(injectionPoint));
+            }
+        };
+    }
+
+    /*
+     * FIXME:
+     * This is a trivial implementation that simply reuses the deprecated method.
+     * Reimplement in a way that supports boot time validation an caching. 
+     */
+    @Override
+    public ResourceReferenceFactory<Object> registerResourceInjectionPoint(final String jndiName, final String mappedName) {
+        return new ResourceReferenceFactory<Object>() {
+            @Override
+            public ResourceReference<Object> createResource() {
+                return new SimpleResourceReference<Object>(resolveResource(jndiName, mappedName));
+            }
+        };
+    }
+
     @Override
     public void cleanup() {
     }
-
 }

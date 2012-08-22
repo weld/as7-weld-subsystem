@@ -40,6 +40,9 @@ import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.weld.injection.spi.JpaInjectionServices;
+import org.jboss.weld.injection.spi.ResourceReference;
+import org.jboss.weld.injection.spi.ResourceReferenceFactory;
+import org.jboss.weld.injection.spi.helpers.SimpleResourceReference;
 
 public class WeldJpaInjectionServices implements JpaInjectionServices {
 
@@ -83,6 +86,36 @@ public class WeldJpaInjectionServices implements JpaInjectionServices {
         //always be up
         PersistenceUnitServiceImpl persistenceUnitService = (PersistenceUnitServiceImpl) serviceController.getValue();
         return persistenceUnitService.getEntityManagerFactory();
+    }
+
+    /*
+     * FIXME:
+     * This is a trivial implementation that simply reuses the deprecated method.
+     * Reimplement in a way that supports boot time validation an caching. 
+     */
+    @Override
+    public ResourceReferenceFactory<EntityManager> registerPersistenceContextInjectionPoint(final InjectionPoint injectionPoint) {
+        return new ResourceReferenceFactory<EntityManager>() {
+            @Override
+            public ResourceReference<EntityManager> createResource() {
+                return new SimpleResourceReference<EntityManager>(resolvePersistenceContext(injectionPoint));
+            }
+        };
+    }
+
+    /*
+     * FIXME:
+     * This is a trivial implementation that simply reuses the deprecated method.
+     * Reimplement in a way that supports boot time validation an caching. 
+     */
+    @Override
+    public ResourceReferenceFactory<EntityManagerFactory> registerPersistenceUnitInjectionPoint(final InjectionPoint injectionPoint) {
+        return new ResourceReferenceFactory<EntityManagerFactory>() {
+            @Override
+            public ResourceReference<EntityManagerFactory> createResource() {
+                return new SimpleResourceReference<EntityManagerFactory>(resolvePersistenceUnit(injectionPoint));
+            }
+        };
     }
 
     @Override

@@ -40,6 +40,9 @@ import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.vfs.VirtualFile;
 import org.jboss.weld.injection.spi.EjbInjectionServices;
+import org.jboss.weld.injection.spi.ResourceReference;
+import org.jboss.weld.injection.spi.ResourceReferenceFactory;
+import org.jboss.weld.injection.spi.helpers.SimpleResourceReference;
 
 /**
  * Implementation of EjbInjectionServices.
@@ -121,6 +124,21 @@ public class WeldEjbInjectionServices implements EjbInjectionServices {
                 throw new RuntimeException(e);
             }
         }
+    }
+
+    /*
+     * FIXME:
+     * This is a trivial implementation that simply reuses the deprecated method.
+     * Reimplement in a way that supports boot time validation an caching. 
+     */
+    @Override
+    public ResourceReferenceFactory<Object> registerEjbInjectionPoint(final InjectionPoint injectionPoint) {
+        return new ResourceReferenceFactory<Object>() {
+            @Override
+            public ResourceReference<Object> createResource() {
+                return new SimpleResourceReference<Object>(resolveEjb(injectionPoint));
+            }
+        };
     }
 
     @Override
