@@ -34,7 +34,6 @@ import org.jboss.weld.Container;
 import org.jboss.weld.Weld;
 import org.jboss.weld.bootstrap.spi.BeanDeploymentArchive;
 import org.jboss.weld.manager.BeanManagerImpl;
-import org.jboss.weld.util.reflection.Reflections;
 
 /**
  * Service provider for {@link CDI}.
@@ -44,14 +43,14 @@ import org.jboss.weld.util.reflection.Reflections;
  */
 public class WeldProvider implements CDIProvider {
 
-    private final Weld<?> weld = new EnhancedWeld();
+    private final Weld weld = new EnhancedWeld();
 
     @Override
-    public <T> CDI<T> getCDI() {
-        return Reflections.cast(weld);
+    public CDI<Object> getCDI() {
+        return weld;
     }
 
-    private static class EnhancedWeld extends Weld<Object> {
+    private static class EnhancedWeld extends Weld {
 
         /**
          * <p>
