@@ -21,7 +21,7 @@
  */
 package org.jboss.as.weld.deployment.processors;
 
-import java.util.List;
+import java.util.Collection;
 
 import org.jboss.as.ee.component.ComponentDescription;
 import org.jboss.as.ee.component.ComponentNamingMode;
@@ -32,7 +32,6 @@ import org.jboss.as.naming.ManagedReference;
 import org.jboss.as.naming.ManagedReferenceFactory;
 import org.jboss.as.naming.ServiceBasedNamingStore;
 import org.jboss.as.naming.ValueManagedReference;
-import org.jboss.as.naming.ValueManagedReferenceFactory;
 import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.as.naming.service.BinderService;
 import org.jboss.as.server.deployment.Attachments;
@@ -71,7 +70,7 @@ public class WeldBeanManagerServiceProcessor implements DeploymentUnitProcessor 
             return;
         }
 
-        final List<ServiceName> dependencies = deploymentUnit.getAttachmentList(Attachments.JNDI_DEPENDENCIES);
+        final Collection<ServiceName> dependencies = deploymentUnit.getAttachment(Attachments.JNDI_DEPENDENCIES);
 
 
         BeanDeploymentArchiveImpl rootBda = deploymentUnit
@@ -119,7 +118,7 @@ public class WeldBeanManagerServiceProcessor implements DeploymentUnitProcessor 
         deploymentUnit.addToAttachmentList(Attachments.SETUP_ACTIONS, new WeldContextSetup());
     }
 
-    private void bindBeanManager(ServiceTarget serviceTarget, ServiceName beanManagerServiceName, ServiceName contextServiceName, final List<ServiceName> dependencies, final ServiceRegistry serviceRegistry) {
+    private void bindBeanManager(ServiceTarget serviceTarget, ServiceName beanManagerServiceName, ServiceName contextServiceName, final Collection<ServiceName> dependencies, final ServiceRegistry serviceRegistry) {
         final ServiceName beanManagerBindingServiceName = contextServiceName.append("BeanManager");
         dependencies.add(beanManagerBindingServiceName);
         BinderService beanManagerBindingService = new BinderService("BeanManager");
