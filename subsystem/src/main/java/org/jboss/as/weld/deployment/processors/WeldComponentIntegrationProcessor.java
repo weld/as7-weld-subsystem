@@ -66,6 +66,12 @@ import org.jboss.msc.service.ServiceTarget;
  */
 public class WeldComponentIntegrationProcessor implements DeploymentUnitProcessor {
 
+    /*
+     * This should be defined in InterceptorOrder.ComponentPostConstruct but we cannot rely on that and be backwards-compatible
+     * at the same time :-/
+     */
+    public static final int POST_CONSTRUCT_REQUEST_SCOPE_ACTIVATING_INTERCEPTOR_ORDER = 0xA80;
+
     @Override
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
@@ -172,6 +178,13 @@ public class WeldComponentIntegrationProcessor implements DeploymentUnitProcesso
             final Jsr299BindingsInterceptor.Factory postConstruct = new Jsr299BindingsInterceptor.Factory(description.getBeanDeploymentArchiveId(), beanName, InterceptionType.POST_CONSTRUCT, classLoader);
             builder.addDependency(weldServiceName, WeldContainer.class, postConstruct.getWeldContainer());
             configuration.addPostConstructInterceptor(postConstruct, InterceptorOrder.ComponentPostConstruct.CDI_INTERCEPTORS);
+
+            /*
+             * Add interceptor to activate the request scope for the @PostConstruct callback.
+             * See https://issues.jboss.org/browse/CDI-219 for details
+             */
+            final EjbRequestScopeActivationInterceptor.Factory postConstructRequestContextActivationFactory = new EjbRequestScopeActivationInterceptor.Factory(weldServiceName);
+            configuration.addPostConstructInterceptor(postConstructRequestContextActivationFactory, POST_CONSTRUCT_REQUEST_SCOPE_ACTIVATING_INTERCEPTOR_ORDER);
 
         }
 
