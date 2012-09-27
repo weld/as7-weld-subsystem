@@ -36,6 +36,8 @@ import org.jboss.msc.service.ServiceContainer;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.weld.context.ejb.EjbLiteral;
 import org.jboss.weld.context.ejb.EjbRequestContext;
+import org.jboss.weld.literal.DestroyedLiteral;
+import org.jboss.weld.literal.InitializedLiteral;
 import org.jboss.weld.manager.BeanManagerImpl;
 
 /**
@@ -91,11 +93,13 @@ public class EjbRequestScopeActivationInterceptor implements Serializable, org.j
         try {
             requestContext.associate(context.getInvocationContext());
             requestContext.activate();
+            beanManager.getGlobalLenientObserverNotifier().fireEvent(new Object(), InitializedLiteral.REQUEST);
             return context.proceed();
         } finally {
             requestContext.invalidate();
             requestContext.deactivate();
             requestContext.dissociate(context.getInvocationContext());
+            beanManager.getGlobalLenientObserverNotifier().fireEvent(new Object(), DestroyedLiteral.REQUEST);
         }
     }
 
