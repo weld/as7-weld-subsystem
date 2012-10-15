@@ -21,6 +21,7 @@
  */
 package org.jboss.as.weld.util;
 
+
 /**
  *
  * @author Stuart Douglas
@@ -38,6 +39,15 @@ public class Reflections {
             throw new RuntimeException(e);
         } catch (InstantiationException e) {
             throw new RuntimeException(e);
+        }
+    }
+
+    public static boolean isAccessible(String className, ClassLoader classLoader) {
+        try {
+            classLoader.loadClass(className);
+            return true;
+        } catch (Exception e) {
+            return false;
         }
     }
 
