@@ -36,7 +36,6 @@ import org.jboss.as.ee.component.InterceptorDescription;
 import org.jboss.as.ee.component.interceptors.InterceptorOrder;
 import org.jboss.as.ee.component.interceptors.UserInterceptorFactory;
 import org.jboss.as.ejb3.component.EJBComponentDescription;
-import org.jboss.as.ejb3.component.stateful.SerializedCdiInterceptorsKey;
 import org.jboss.as.ejb3.component.stateful.StatefulComponentDescription;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
@@ -53,6 +52,7 @@ import org.jboss.as.weld.ejb.Jsr299BindingsInterceptor;
 import org.jboss.as.weld.injection.WeldInjectionInterceptor;
 import org.jboss.as.weld.injection.WeldManagedReferenceFactory;
 import org.jboss.as.weld.services.WeldService;
+import org.jboss.as.weld.util.Compatibility;
 import org.jboss.modules.ModuleClassLoader;
 import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceName;
@@ -118,7 +118,7 @@ public class WeldComponentIntegrationProcessor implements DeploymentUnitProcesso
 
                     //add a context key for weld interceptor replication
                     if (description instanceof StatefulComponentDescription) {
-                        configuration.getInterceptorContextKeys().add(SerializedCdiInterceptorsKey.class);
+                        configuration.getInterceptorContextKeys().add(Compatibility.SERIALIZABLE_CDI_INTERCEPTORS_KEY_CLASS);
                     }
                 }
             });

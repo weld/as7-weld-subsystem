@@ -31,11 +31,11 @@ import javax.interceptor.InvocationContext;
 
 import org.jboss.as.ee.component.Component;
 import org.jboss.as.ee.component.ComponentInstanceInterceptorFactory;
-import org.jboss.as.ejb3.component.stateful.SerializedCdiInterceptorsKey;
 import org.jboss.as.naming.ManagedReference;
 import org.jboss.as.naming.ValueManagedReference;
 import org.jboss.as.weld.WeldContainer;
 import org.jboss.as.weld.services.bootstrap.WeldEjbServices;
+import org.jboss.as.weld.util.Compatibility;
 import org.jboss.invocation.InterceptorContext;
 import org.jboss.invocation.InterceptorFactoryContext;
 import org.jboss.msc.value.ImmediateValue;
@@ -79,7 +79,7 @@ public class Jsr299BindingsInterceptor implements org.jboss.invocation.Intercept
             EjbDescriptor<Object> descriptor = beanManager.getEjbDescriptor(this.ejbName);
             SessionBean<Object> bean = beanManager.getBean(descriptor);
 
-            final AtomicReference<ManagedReference> reference = (AtomicReference<ManagedReference>) context.getContextData().get(SerializedCdiInterceptorsKey.class);
+            final AtomicReference<ManagedReference> reference = (AtomicReference<ManagedReference>) context.getContextData().get(Compatibility.SERIALIZABLE_CDI_INTERCEPTORS_KEY_CLASS);
 
             if (reference == null) {
                 creationalContext = beanManager.createCreationalContext(bean);
@@ -91,7 +91,7 @@ public class Jsr299BindingsInterceptor implements org.jboss.invocation.Intercept
                     }
                 }
                 WeldInterceptorInstances instances = new WeldInterceptorInstances(creationalContext, interceptorInstances);
-                context.getContextData().put(SerializedCdiInterceptorsKey.class, new AtomicReference<ManagedReference>(new ValueManagedReference(new ImmediateValue<Object>(instances))));
+                context.getContextData().put(Compatibility.SERIALIZABLE_CDI_INTERCEPTORS_KEY_CLASS, new AtomicReference<ManagedReference>(new ValueManagedReference(new ImmediateValue<Object>(instances))));
             } else {
                 final WeldInterceptorInstances instances = (WeldInterceptorInstances) reference.get().getInstance();
                 creationalContext = instances.getCreationalContext();
