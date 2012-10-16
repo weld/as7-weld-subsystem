@@ -118,7 +118,6 @@ public class BeansXmlHandler extends DefaultHandler {
     private final List<Metadata<Filter>> includes;
     private final List<Metadata<Filter>> excludes;
     private final URL file;
-    final PropertyReplacer propertyReplacer;
 
     /*
     * Parser State
@@ -128,9 +127,8 @@ public class BeansXmlHandler extends DefaultHandler {
     private StringBuilder buffer;
     private Locator locator;
 
-    public BeansXmlHandler(final URL file, final PropertyReplacer propertyReplacer) {
+    public BeansXmlHandler(final URL file) {
         this.file = file;
-        this.propertyReplacer = propertyReplacer;
         this.interceptors = new ArrayList<Metadata<String>>();
         this.decorators = new ArrayList<Metadata<String>>();
         this.alternativeClasses = new ArrayList<Metadata<String>>();
@@ -144,7 +142,7 @@ public class BeansXmlHandler extends DefaultHandler {
             @Override
             public void processEndChildElement(String uri, String localName, String qName, String nestedText) {
                 if (isInNamespace(uri) && "class".equals(localName)) {
-                    interceptors.add(new XmlMetadata<String>(qName, propertyReplacer.replaceProperties(trim(nestedText)), file, locator.getLineNumber()));
+                    interceptors.add(new XmlMetadata<String>(qName, replaceProperties(trim(nestedText)), file, locator.getLineNumber()));
                 }
             }
 
@@ -159,7 +157,7 @@ public class BeansXmlHandler extends DefaultHandler {
             @Override
             public void processEndChildElement(String uri, String localName, String qName, String nestedText) {
                 if (isInNamespace(uri) && "class".equals(localName)) {
-                    decorators.add(new XmlMetadata<String>(qName, propertyReplacer.replaceProperties(trim(nestedText)), file, locator.getLineNumber()));
+                    decorators.add(new XmlMetadata<String>(qName, replaceProperties(trim(nestedText)), file, locator.getLineNumber()));
                 }
             }
 
@@ -174,9 +172,9 @@ public class BeansXmlHandler extends DefaultHandler {
             @Override
             public void processEndChildElement(String uri, String localName, String qName, String nestedText) {
                 if (isInNamespace(uri) && "class".equals(localName)) {
-                    alternativeClasses.add(new XmlMetadata<String>(qName, propertyReplacer.replaceProperties(trim(nestedText)), file, locator.getLineNumber()));
+                    alternativeClasses.add(new XmlMetadata<String>(qName, replaceProperties(trim(nestedText)), file, locator.getLineNumber()));
                 } else if (isInNamespace(uri) && "stereotype".equals(localName)) {
-                    alternativeStereotypes.add(new XmlMetadata<String>(qName, propertyReplacer.replaceProperties(trim(nestedText)), file, locator.getLineNumber()));
+                    alternativeStereotypes.add(new XmlMetadata<String>(qName, replaceProperties(trim(nestedText)), file, locator.getLineNumber()));
                 }
             }
 
@@ -326,6 +324,10 @@ public class BeansXmlHandler extends DefaultHandler {
             return;
         }
         WeldLogger.DEPLOYMENT_LOGGER.beansXmlValidationError(file, e.getLineNumber(), e.getMessage());
+    }
+
+    protected String replaceProperties(String text) {
+        return text; // noop by default
     }
 
 }

@@ -58,7 +58,7 @@ public class BeansXmlParser {
 
     private static final InputSource[] EMPTY_INPUT_SOURCE_ARRAY = new InputSource[0];
 
-    public BeansXml parse(final URL beansXml, final PropertyReplacer propertyReplacer) throws DeploymentUnitProcessingException {
+    public BeansXml parse(final URL beansXml) throws DeploymentUnitProcessingException {
         SAXParserFactory factory = SAXParserFactory.newInstance();
         factory.setValidating(true);
         factory.setNamespaceAware(true);
@@ -81,7 +81,7 @@ public class BeansXmlParser {
                 // The file is just acting as a marker file
                 return EMPTY_BEANS_XML;
             }
-            BeansXmlHandler handler = new BeansXmlHandler(beansXml, propertyReplacer);
+            BeansXmlHandler handler = getHandler(beansXml);
 
             try {
                 parser.setProperty("http://java.sun.com/xml/jaxp/properties/schemaLanguage", "http://www.w3.org/2001/XMLSchema");
@@ -109,7 +109,7 @@ public class BeansXmlParser {
         }
     }
 
-    public BeansXml parse(Iterable<URL> urls, final PropertyReplacer propertyReplacer) throws DeploymentUnitProcessingException {
+    public BeansXml parse(Iterable<URL> urls) throws DeploymentUnitProcessingException {
         List<Metadata<String>> alternativeStereotypes = new ArrayList<Metadata<String>>();
         List<Metadata<String>> alternativeClasses = new ArrayList<Metadata<String>>();
         List<Metadata<String>> decorators = new ArrayList<Metadata<String>>();
@@ -118,7 +118,7 @@ public class BeansXmlParser {
         List<Metadata<Filter>> excludes = new ArrayList<Metadata<Filter>>();
         URL beansXmlUrl = null;
         for (URL url : urls) {
-            BeansXml beansXml = parse(url, propertyReplacer);
+            BeansXml beansXml = parse(url);
             alternativeStereotypes.addAll(beansXml.getEnabledAlternativeStereotypes());
             alternativeClasses.addAll(beansXml.getEnabledAlternativeClasses());
             decorators.addAll(beansXml.getEnabledDecorators());
@@ -157,6 +157,10 @@ public class BeansXmlParser {
         } else {
             return new InputSource(in);
         }
+    }
+
+    protected BeansXmlHandler getHandler(final URL beansXml) {
+        return new BeansXmlHandler(beansXml);
     }
 
 
