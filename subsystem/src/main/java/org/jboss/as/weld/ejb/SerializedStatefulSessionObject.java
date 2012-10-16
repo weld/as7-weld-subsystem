@@ -56,7 +56,7 @@ public class SerializedStatefulSessionObject implements Serializable {
         for (Map.Entry<String, String> e : serviceNames.entrySet()) {
             names.put(e.getKey(), ServiceName.parse(e.getValue()));
         }
-        return new StatefulSessionObjectReferenceImpl(sessionID, ServiceName.parse(componentServiceName), names);
+        return StatefulSessionObjectReferenceFactory.create(sessionID, ServiceName.parse(componentServiceName), names);
 
     }
 }

@@ -21,150 +21,31 @@
  */
 package org.jboss.as.weld.ejb;
 
-import java.io.IOException;
-import java.io.Serializable;
-import java.security.AccessController;
-import java.security.PrivilegedAction;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 
-import org.jboss.as.ee.component.ComponentView;
-import org.jboss.as.ejb3.component.stateful.StatefulSessionComponent;
-import org.jboss.as.server.CurrentServiceContainer;
-import org.jboss.as.weld.WeldMessages;
 import org.jboss.ejb.client.SessionID;
-import org.jboss.msc.service.ServiceContainer;
-import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
-import org.jboss.weld.ejb.api.SessionObjectReference;
-import org.jboss.weld.ejb.spi.BusinessInterfaceDescriptor;
 
 /**
  * Implementation for SFSB's
  *
  * @author Stuart Douglas
  */
-public class StatefulSessionObjectReferenceImpl implements SessionObjectReference, Serializable {
+public class StatefulSessionObjectReferenceImpl extends LegacyStatefulSessionObjectReferenceImpl {
 
-    private volatile boolean removed = false;
-
-    private final Map<String, ServiceName> viewServices;
-    private final ServiceName createServiceName;
-    private final SessionID id;
-    private final StatefulSessionComponent ejbComponent;
-
-    public StatefulSessionObjectReferenceImpl(final SessionID id, final ServiceName createServiceName, final Map<String, ServiceName> viewServices) {
-        this.id = id;
-        this.createServiceName = createServiceName;
-        this.viewServices = viewServices;
-        final ServiceController<?> controller = currentServiceContainer().getRequiredService(createServiceName);
-        ejbComponent = (StatefulSessionComponent) controller.getValue();
+    protected StatefulSessionObjectReferenceImpl(EjbDescriptorImpl<?> descriptor) {
+        super(descriptor);
     }
 
-    public StatefulSessionObjectReferenceImpl(EjbDescriptorImpl<?> descriptor) {
-        this.createServiceName = descriptor.getCreateServiceName();
-        final ServiceController<?> controller = currentServiceContainer().getRequiredService(createServiceName);
-        ejbComponent = (StatefulSessionComponent) controller.getValue();
-        this.id = ejbComponent.createSession();
-        this.viewServices = buildViews(descriptor);
-
-    }
-
-    private static Map<String, ServiceName> buildViews(final EjbDescriptorImpl<?> descriptor) {
-        final Map<String, ServiceName> viewServices = new HashMap<String, ServiceName>();
-        final Map<String, Class<?>> views = new HashMap<String, Class<?>>();
-        for (BusinessInterfaceDescriptor<?> view : descriptor.getRemoteBusinessInterfaces()) {
-            views.put(view.getInterface().getName(), view.getInterface());
-        }
-        for (BusinessInterfaceDescriptor<?> view : descriptor.getLocalBusinessInterfaces()) {
-            views.put(view.getInterface().getName(), view.getInterface());
-        }
-
-        for (Map.Entry<Class<?>, ServiceName> entry : descriptor.getViewServices().entrySet()) {
-            final Class<?> viewClass = entry.getKey();
-            if (viewClass != null) {
-                //see WELD-921
-                //this is horrible, but until it is fixed there is not much that can be done
-
-                final Set<Class<?>> seen = new HashSet<Class<?>>();
-                final Set<Class<?>> toProcess = new HashSet<Class<?>>();
-
-                toProcess.add(viewClass);
-
-                while (!toProcess.isEmpty()) {
-                    Iterator<Class<?>> it = toProcess.iterator();
-                    final Class<?> clazz = it.next();
-                    it.remove();
-                    seen.add(clazz);
-                    viewServices.put(clazz.getName(), entry.getValue());
-                    final Class<?> superclass = clazz.getSuperclass();
-                    if (superclass != Object.class && superclass != null && !seen.contains(superclass)) {
-                        toProcess.add(superclass);
-                    }
-                    for (Class<?> iface : clazz.getInterfaces()) {
-                        if (!seen.contains(iface)) {
-                            toProcess.add(iface);
-                        }
-                    }
-                }
-            }
-        }
-        return viewServices;
-    }
-
-
-    @Override
-    @SuppressWarnings({"unchecked"})
-    public synchronized <S> S getBusinessObject(Class<S> businessInterfaceType) {
-        if (isRemoved()) {
-            throw WeldMessages.MESSAGES.ejbHashBeenRemoved();
-        }
-        if (viewServices.containsKey(businessInterfaceType.getName())) {
-            final ServiceController<?> serviceController = currentServiceContainer().getRequiredService(viewServices.get(businessInterfaceType.getName()));
-            final ComponentView view = (ComponentView) serviceController.getValue();
-            try {
-                return (S) view.createInstance(Collections.<Object, Object>singletonMap(SessionID.class, id)).getInstance();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        } else {
-            throw WeldMessages.MESSAGES.viewNotFoundOnEJB(businessInterfaceType.getName(), ejbComponent.getComponentName());
-        }
-    }
-
-
-    private static ServiceContainer currentServiceContainer() {
-        return AccessController.doPrivileged(new PrivilegedAction<ServiceContainer>() {
-            @Override
-            public ServiceContainer run() {
-                return CurrentServiceContainer.getServiceContainer();
-            }
-        });
-    }
-
-    protected Object writeReplace() throws IOException {
-        return new SerializedStatefulSessionObject(createServiceName, id, viewServices);
-    }
-
-    @Override
-    public void remove() {
-        if (!isRemoved()) {
-            ejbComponent.removeSession(id);
-            removed = true;
-        }
+    protected StatefulSessionObjectReferenceImpl(SessionID id, ServiceName createServiceName, Map<String, ServiceName> viewServices) {
+        super(id, createServiceName, viewServices);
     }
 
     @Override
     public boolean isRemoved() {
-        if (!removed) {
+        if (!super.isRemoved()) {
             return !ejbComponent.getCache().contains(id);
         }
         return true;
     }
-
-
 }

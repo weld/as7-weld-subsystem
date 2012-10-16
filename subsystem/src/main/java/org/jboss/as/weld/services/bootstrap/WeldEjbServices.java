@@ -23,6 +23,7 @@ package org.jboss.as.weld.services.bootstrap;
 
 import org.jboss.as.weld.ejb.EjbDescriptorImpl;
 import org.jboss.as.weld.ejb.SessionObjectReferenceImpl;
+import org.jboss.as.weld.ejb.StatefulSessionObjectReferenceFactory;
 import org.jboss.as.weld.ejb.StatefulSessionObjectReferenceImpl;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.weld.ejb.api.SessionObjectReference;
@@ -57,7 +58,7 @@ public class WeldEjbServices implements EjbServices {
     @Override
     public SessionObjectReference resolveEjb(EjbDescriptor<?> ejbDescriptor) {
         if (ejbDescriptor.isStateful()) {
-            return new StatefulSessionObjectReferenceImpl((EjbDescriptorImpl<?>) ejbDescriptor);
+            return StatefulSessionObjectReferenceFactory.create((EjbDescriptorImpl<?>) ejbDescriptor);
         } else {
             return new SessionObjectReferenceImpl((EjbDescriptorImpl<?>) ejbDescriptor);
         }
