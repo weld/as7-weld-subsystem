@@ -34,6 +34,7 @@ import javax.xml.stream.XMLStreamException;
 
 import org.jboss.as.controller.Extension;
 import org.jboss.as.controller.ExtensionContext;
+import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.PathAddress;
 import org.jboss.as.controller.PathElement;
 import org.jboss.as.controller.ReloadRequiredRemoveStepHandler;
@@ -85,7 +86,7 @@ public class WeldExtension implements Extension {
     private static final ResourceDefinition WELD_SUBSYSTEM_RESOURCE = new SimpleResourceDefinition(
             PATH_SUBSYSTEM,
             getResourceDescriptionResolver(),
-            WeldSubsystemAdd.INSTANCE,
+            (OperationStepHandler) WeldSubsystemAdd.INSTANCE,
             ReloadRequiredRemoveStepHandler.INSTANCE);
 
     /** {@inheritDoc} */
