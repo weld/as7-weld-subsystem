@@ -151,9 +151,7 @@ public class WeldDeployment implements Deployment {
          * (and thus has the required accessibility to other BDAs)
          */
         if (additionalBeanDeploymentArchivesByClassloader.containsKey(beanClass.getClassLoader())) {
-            BeanDeploymentArchiveImpl bda = additionalBeanDeploymentArchivesByClassloader.get(beanClass.getClassLoader());
-            bda.addBeanClass(beanClass.getName());
-            return bda;
+            return additionalBeanDeploymentArchivesByClassloader.get(beanClass.getClassLoader());
         }
         /*
          * No, there is no BDA for the class' classloader yet. Let's create one.
