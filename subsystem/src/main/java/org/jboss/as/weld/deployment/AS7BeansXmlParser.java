@@ -19,29 +19,22 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
-package org.jboss.as.weld.deployment.processors;
+package org.jboss.as.weld.deployment;
 
 import java.net.URL;
 
-import org.jboss.as.ee.structure.SpecDescriptorPropertyReplacement;
-import org.jboss.as.server.deployment.DeploymentUnit;
-import org.jboss.as.weld.deployment.AS7BeansXmlHandler;
-import org.jboss.as.weld.deployment.AS7BeansXmlParser;
-import org.jboss.as.weld.deployment.ReplacingBeansXmlHandler;
+import org.jboss.weld.xml.BeansXmlParser;
 
 /**
- * Deployment processor that finds <literal>beans.xml</literal> files and attaches the information to the deployment
+ * Fork of {@link org.jboss.weld.xml.BeansXmlParser} to fix some minor XML parsing issues.
  *
  * @author Stuart Douglas
+ * @author Pete Muir
+ * @author Jozef Hartinger
  */
-public class BeansXmlProcessor extends LegacyBeansXmlProcessor {
+public class AS7BeansXmlParser extends BeansXmlParser {
 
-    @Override
-    protected AS7BeansXmlParser getBeansXmlParser(final DeploymentUnit deploymentUnit) {
-        return new AS7BeansXmlParser() {
-            protected AS7BeansXmlHandler getHandler(final URL beansXml) {
-                return new ReplacingBeansXmlHandler(beansXml, SpecDescriptorPropertyReplacement.propertyReplacer(deploymentUnit));
-            }
-        };
+    protected AS7BeansXmlHandler getHandler(final URL beansXml) {
+        return new AS7BeansXmlHandler(beansXml);
     }
 }

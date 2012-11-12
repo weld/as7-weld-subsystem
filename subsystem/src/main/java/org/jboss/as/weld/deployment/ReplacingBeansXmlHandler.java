@@ -27,7 +27,7 @@ import org.jboss.metadata.property.PropertyReplacer;
  * @author Stuart Douglas
  *
  */
-public class ReplacingBeansXmlHandler extends BeansXmlHandler {
+public class ReplacingBeansXmlHandler extends AS7BeansXmlHandler {
 
     private final PropertyReplacer replacer;
 
@@ -37,7 +37,7 @@ public class ReplacingBeansXmlHandler extends BeansXmlHandler {
     }
 
     @Override
-    protected String replaceProperties(String text) {
+    protected String interpolate(String text) {
         return replacer.replaceProperties(text);
     }
 

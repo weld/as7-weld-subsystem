@@ -40,7 +40,7 @@ import org.jboss.as.weld.WeldDeploymentMarker;
 import org.jboss.as.weld.WeldLogger;
 import org.jboss.as.weld.WeldMessages;
 import org.jboss.as.weld.deployment.BeanArchiveMetadata;
-import org.jboss.as.weld.deployment.BeansXmlParser;
+import org.jboss.as.weld.deployment.AS7BeansXmlParser;
 import org.jboss.as.weld.deployment.WeldDeploymentMetadata;
 import org.jboss.metadata.property.PropertyReplacer;
 import org.jboss.vfs.VirtualFile;
@@ -69,7 +69,7 @@ public class LegacyBeansXmlProcessor implements DeploymentUnitProcessor {
             return;
         }
 
-        BeansXmlParser parser = getBeansXmlParser(deploymentUnit);
+        AS7BeansXmlParser parser = getBeansXmlParser(deploymentUnit);
 
         ResourceRoot classesRoot = null;
         List<ResourceRoot> structure = deploymentUnit.getAttachmentList(Attachments.RESOURCE_ROOTS);
@@ -134,16 +134,18 @@ public class LegacyBeansXmlProcessor implements DeploymentUnitProcessor {
 
     }
 
-    private BeansXml parseBeansXml(VirtualFile beansXmlFile, BeansXmlParser parser, final DeploymentUnit deploymentUnit) throws DeploymentUnitProcessingException {
+    private BeansXml parseBeansXml(VirtualFile beansXmlFile, AS7BeansXmlParser parser, final DeploymentUnit deploymentUnit) throws DeploymentUnitProcessingException {
         try {
             return parser.parse(beansXmlFile.asFileURL());
         } catch (MalformedURLException e) {
             throw WeldMessages.MESSAGES.couldNotGetBeansXmlAsURL(beansXmlFile.toString(), e);
+        } catch (RuntimeException e) {
+            throw new DeploymentUnitProcessingException(e);
         }
     }
 
-    protected BeansXmlParser getBeansXmlParser(final DeploymentUnit deploymentUnit) {
-        return new BeansXmlParser();
+    protected AS7BeansXmlParser getBeansXmlParser(final DeploymentUnit deploymentUnit) {
+        return new AS7BeansXmlParser();
     }
 
 }
