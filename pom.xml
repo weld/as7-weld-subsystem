@@ -5,7 +5,7 @@
     <parent>
         <groupId>org.jboss.weld</groupId>
         <artifactId>weld-parent</artifactId>
-        <version>19</version>
+        <version>20</version>
     </parent>
 
     <prerequisites>
@@ -41,7 +41,7 @@
     </modules>
 
     <properties>
-        <cdi.api.version>1.1-20121030</cdi.api.version>
+        <cdi.api.version>1.1-PRD</cdi.api.version>
         <jboss.spec.version>2.1.0.Beta1</jboss.spec.version>
         <jboss.as7.version>7.2.0.Alpha1-SNAPSHOT</jboss.as7.version>
         <jboss.logging.version>3.1.1.GA</jboss.logging.version>
@@ -49,8 +49,8 @@
         <jboss.metadata.web.version>7.0.3.Final</jboss.metadata.web.version>
         <jboss.msc.version>1.0.2.GA</jboss.msc.version>
         <jboss.vfs.version>3.1.0.Final</jboss.vfs.version>
-        <weld.version>2.0.0-SNAPSHOT</weld.version>
-        <weld.spi.version>2.0-SNAPSHOT</weld.spi.version>
+        <weld.version>2.0.0.Beta1</weld.version>
+        <weld.spi.version>2.0.Beta1</weld.spi.version>
     </properties>
 
     <dependencyManagement>
