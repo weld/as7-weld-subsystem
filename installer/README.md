@@ -12,9 +12,9 @@ The script updates everything necessary for Weld 2 to run on JBoss AS 7. Namely 
 Installation
 ------------
 
-Set the $JBOSS_HOME environment property to point to JBoss AS 7.1.2.Final or later
+Set the $JBOSS_HOME environment property to point to JBoss AS 7.1.1.Final or later
 
-> export JBOSS_HOME=/opt/sources/as7/build/target/jboss-as-7.1.2.Final
+> export JBOSS_HOME=/opt/sources/as7/build/target/jboss-as-7.1.1.Final
 
 Run the build
 
