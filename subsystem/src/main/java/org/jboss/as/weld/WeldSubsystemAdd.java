@@ -55,6 +55,8 @@ import org.jboss.msc.service.ServiceController.Mode;
  * @author Emanuel Muckenhuber
  */
 class WeldSubsystemAdd extends AbstractBoottimeAddStepHandler {
+    public static final int PARSE_CDI_ANNOTATIONS                       = 0x2A10;
+    public static final int POST_MODULE_WELD_WEB_INTEGRATION            = 0x0700;
 
     static final WeldSubsystemAdd INSTANCE = new WeldSubsystemAdd();
 
@@ -90,9 +92,9 @@ class WeldSubsystemAdd extends AbstractBoottimeAddStepHandler {
         @Override
         protected void execute(DeploymentProcessorTarget processorTarget) {
             processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_WELD, new WeldDependencyProcessor());
-            processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_CDI_ANNOTATIONS, new CdiAnnotationProcessor());
+            processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.PARSE, PARSE_CDI_ANNOTATIONS, new CdiAnnotationProcessor());
             processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_WELD_DEPLOYMENT, new BeansXmlProcessor());
-            processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_WEB_INTEGRATION, new WebIntegrationProcessor());
+            processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, POST_MODULE_WELD_WEB_INTEGRATION, new WebIntegrationProcessor());
             processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_BEAN_ARCHIVE, new BeanArchiveProcessor());
             processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_PORTABLE_EXTENSIONS, new WeldPortableExtensionProcessor());
             processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_COMPONENT_INTEGRATION, new WeldComponentIntegrationProcessor());
@@ -116,9 +118,9 @@ class WeldSubsystemAdd extends AbstractBoottimeAddStepHandler {
         @Override
         protected void execute(DeploymentProcessorTarget processorTarget) {
             processorTarget.addDeploymentProcessor(Phase.DEPENDENCIES, Phase.DEPENDENCIES_WELD, new WeldDependencyProcessor());
-            processorTarget.addDeploymentProcessor(Phase.PARSE, Phase.PARSE_CDI_ANNOTATIONS, new CdiAnnotationProcessor());
+            processorTarget.addDeploymentProcessor(Phase.PARSE, PARSE_CDI_ANNOTATIONS, new CdiAnnotationProcessor());
             processorTarget.addDeploymentProcessor(Phase.PARSE, Phase.PARSE_WELD_DEPLOYMENT, new LegacyBeansXmlProcessor());
-            processorTarget.addDeploymentProcessor(Phase.POST_MODULE, Phase.POST_MODULE_WELD_WEB_INTEGRATION, new WebIntegrationProcessor());
+            processorTarget.addDeploymentProcessor(Phase.POST_MODULE, POST_MODULE_WELD_WEB_INTEGRATION, new WebIntegrationProcessor());
             processorTarget.addDeploymentProcessor(Phase.POST_MODULE, Phase.POST_MODULE_WELD_BEAN_ARCHIVE, new BeanArchiveProcessor());
             processorTarget.addDeploymentProcessor(Phase.POST_MODULE, Phase.POST_MODULE_WELD_PORTABLE_EXTENSIONS, new WeldPortableExtensionProcessor());
             processorTarget.addDeploymentProcessor(Phase.POST_MODULE, Phase.POST_MODULE_WELD_COMPONENT_INTEGRATION, new WeldComponentIntegrationProcessor());
