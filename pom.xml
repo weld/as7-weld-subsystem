@@ -167,6 +167,11 @@
     <profiles>
         <profile>
             <id>update-jboss-as</id>
+            <activation>
+                <property>
+                    <name>release</name>
+                </property>
+            </activation>
             <modules>
                 <module>installer</module>
             </modules>
