@@ -1,11 +1,10 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-    xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
     <parent>
         <groupId>org.jboss.weld</groupId>
         <artifactId>as7-weld-subsystem-parent</artifactId>
-        <version>2.0.0-SNAPSHOT</version>
+        <version>2.0.0.Beta2</version>
         <relativePath>../pom.xml</relativePath>
     </parent>
 
@@ -69,94 +68,65 @@
                                 </goals>
                                 <configuration>
                                     <tasks>
-                                        <property
-                                            file="${basedir}/local.build.properties" />
+                                        <property file="${basedir}/local.build.properties" />
                                         <property file="${basedir}/build.properties" />
-                                        <property name="jboss.home"
-                                            value="${env.JBOSS_HOME}" />
-                                        <property name="module.dir"
-                                            value="${jboss.home}/modules" />
+                                        <property name="jboss.home" value="${env.JBOSS_HOME}" />
+                                        <property name="module.dir" value="${jboss.home}/modules" />
 
                                         <delete>
-                                            <fileset
-                                                dir="${module.dir}/javax/enterprise/api/main"
-                                                includes="*" />
-                                            <fileset
-                                                dir="${module.dir}/org/jboss/weld/core/main"
-                                                includes="*" />
-                                            <fileset
-                                                dir="${module.dir}/org/jboss/weld/spi/main"
-                                                includes="*" />
-                                            <fileset
-                                                dir="${module.dir}/org/jboss/weld/api/main"
-                                                includes="*" />
-                                            <fileset
-                                                dir="${module.dir}/org/jboss/as/weld/main"
-                                                includes="*" />
+                                            <fileset dir="${module.dir}/javax/enterprise/api/main" includes="*" />
+                                            <fileset dir="${module.dir}/org/jboss/weld/core/main" includes="*" />
+                                            <fileset dir="${module.dir}/org/jboss/weld/spi/main" includes="*" />
+                                            <fileset dir="${module.dir}/org/jboss/weld/api/main" includes="*" />
+                                            <fileset dir="${module.dir}/org/jboss/as/weld/main" includes="*" />
                                         </delete>
 
                                         <!-- CDI API -->
-                                        <copy
-                                            todir="${module.dir}/javax/enterprise/api/main"
-                                            overwrite="true">
+                                        <copy todir="${module.dir}/javax/enterprise/api/main" overwrite="true">
                                             <fileset dir="target/dependency/lib">
                                                 <include name="cdi-api.jar" />
                                             </fileset>
-                                            <fileset
-                                                dir="src/main/modules/javax/enterprise/api/main">
+                                            <fileset dir="src/main/modules/javax/enterprise/api/main">
                                                 <include name="module.xml" />
                                             </fileset>
                                         </copy>
 
                                         <!-- Weld core -->
-                                        <copy
-                                            todir="${module.dir}/org/jboss/weld/core/main"
-                                            overwrite="true">
+                                        <copy todir="${module.dir}/org/jboss/weld/core/main" overwrite="true">
                                             <fileset dir="target/dependency/lib">
                                                 <include name="weld-core.jar" />
                                             </fileset>
-                                            <fileset
-                                                dir="src/main/modules/org/jboss/weld/core/main">
+                                            <fileset dir="src/main/modules/org/jboss/weld/core/main">
                                                 <include name="module.xml" />
                                             </fileset>
                                         </copy>
 
                                         <!-- Weld SPI -->
-                                        <copy
-                                            todir="${module.dir}/org/jboss/weld/spi/main"
-                                            overwrite="true">
+                                        <copy todir="${module.dir}/org/jboss/weld/spi/main" overwrite="true">
                                             <fileset dir="target/dependency/lib">
                                                 <include name="weld-spi.jar" />
                                             </fileset>
-                                            <fileset
-                                                dir="src/main/modules/org/jboss/weld/spi/main">
+                                            <fileset dir="src/main/modules/org/jboss/weld/spi/main">
                                                 <include name="module.xml" />
                                             </fileset>
                                         </copy>
 
                                         <!-- Weld API -->
-                                        <copy
-                                            todir="${module.dir}/org/jboss/weld/api/main"
-                                            overwrite="true">
+                                        <copy todir="${module.dir}/org/jboss/weld/api/main" overwrite="true">
                                             <fileset dir="target/dependency/lib">
                                                 <include name="weld-api.jar" />
                                             </fileset>
-                                            <fileset
-                                                dir="src/main/modules/org/jboss/weld/api/main">
+                                            <fileset dir="src/main/modules/org/jboss/weld/api/main">
                                                 <include name="module.xml" />
                                             </fileset>
                                         </copy>
 
                                         <!-- Weld AS7 subsystem -->
-                                        <copy
-                                            todir="${module.dir}/org/jboss/as/weld/main"
-                                            overwrite="true">
+                                        <copy todir="${module.dir}/org/jboss/as/weld/main" overwrite="true">
                                             <fileset dir="target/dependency/lib">
-                                                <include
-                                                    name="as7-weld-subsystem.jar" />
+                                                <include name="as7-weld-subsystem.jar" />
                                             </fileset>
-                                            <fileset
-                                                dir="src/main/modules/org/jboss/as/weld/main">
+                                            <fileset dir="src/main/modules/org/jboss/as/weld/main">
                                                 <include name="module.xml" />
                                             </fileset>
                                         </copy>
