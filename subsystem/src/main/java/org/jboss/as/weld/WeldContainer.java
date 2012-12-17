@@ -36,6 +36,7 @@ import org.jboss.weld.bootstrap.WeldBootstrap;
 import org.jboss.weld.bootstrap.api.Environment;
 import org.jboss.weld.bootstrap.api.Service;
 import org.jboss.weld.bootstrap.spi.BeanDeploymentArchive;
+import org.jboss.weld.manager.BeanManagerImpl;
 
 /**
  * Provides access to a running weld deployment.
@@ -135,7 +136,7 @@ public class WeldContainer {
      * @throws IllegalStateException    if the container is not running
      * @throws IllegalArgumentException if the bean deployment archive id is not found
      */
-    public BeanManager getBeanManager(String beanArchiveId) {
+    public BeanManagerImpl getBeanManager(String beanArchiveId) {
         if (!started) {
             throw WeldMessages.MESSAGES.notStarted("WeldContainer");
         }
