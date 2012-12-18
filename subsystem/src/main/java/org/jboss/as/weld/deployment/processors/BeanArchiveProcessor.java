@@ -166,8 +166,12 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
                 classNames.add(classInfo.name().toString());
             }
         }
-        return new BeanDeploymentArchiveImpl(classNames, beanArchiveMetadata.getBeansXml(), module, beanArchivePrefix
-                + beanArchiveMetadata.getResourceRoot().getRoot().getPathName(), root);
+
+        String beanArchiveId = beanArchivePrefix;
+        if (beanArchiveMetadata.getResourceRoot() != null) {
+            beanArchiveId += beanArchiveMetadata.getResourceRoot().getRoot().getPathName();
+        }
+        return new BeanDeploymentArchiveImpl(classNames, beanArchiveMetadata.getBeansXml(), module, beanArchiveId, root);
     }
 
     @Override

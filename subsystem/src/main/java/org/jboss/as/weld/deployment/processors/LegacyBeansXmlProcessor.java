@@ -90,25 +90,25 @@ public class LegacyBeansXmlProcessor implements DeploymentUnitProcessor {
         }
 
         if (DeploymentTypeMarker.isType(DeploymentType.WAR, deploymentUnit)) {
-            if (classesRoot != null) {
-                // look for WEB-INF/beans.xml
-                final VirtualFile rootBeansXml = deploymentRoot.getRoot().getChild(WEB_INF_BEANS_XML);
-                final boolean rootBeansXmlPresent = rootBeansXml.exists() && rootBeansXml.isFile();
-                // look for beans.xml files in the wrong location
-                final VirtualFile beansXml = classesRoot.getRoot().getChild(META_INF_BEANS_XML);
-                final boolean beansXmlPresent = beansXml.exists() && beansXml.isFile();
+            final VirtualFile rootBeansXml = deploymentRoot.getRoot().getChild(WEB_INF_BEANS_XML);
+            final boolean rootBeansXmlPresent = rootBeansXml.exists() && rootBeansXml.isFile();
 
-                if (rootBeansXmlPresent) {
-                    if (beansXmlPresent) {
-                        // warn that it is not portable to use both locations at the same time
-                        WeldLogger.DEPLOYMENT_LOGGER.duplicateBeansXml();
-                    }
-                    WeldLogger.DEPLOYMENT_LOGGER.debugf("Found beans.xml: %s", rootBeansXml);
-                    beanArchiveMetadata.add(new BeanArchiveMetadata(rootBeansXml, classesRoot, parseBeansXml(rootBeansXml, parser, deploymentUnit), true));
-                } else if (beansXmlPresent) {
-                    WeldLogger.DEPLOYMENT_LOGGER.debugf("Found beans.xml: %s", beansXml);
-                    beanArchiveMetadata.add(new BeanArchiveMetadata(beansXml, classesRoot, parseBeansXml(beansXml, parser, deploymentUnit), true));
+            VirtualFile beansXml = null;
+            if (classesRoot != null) {
+                beansXml = classesRoot.getRoot().getChild(META_INF_BEANS_XML);
+            }
+            final boolean beansXmlPresent = beansXml != null && beansXml.exists() && beansXml.isFile();
+
+            if (rootBeansXmlPresent) {
+                if (beansXmlPresent) {
+                    // warn that it is not portable to use both locations at the same time
+                    WeldLogger.DEPLOYMENT_LOGGER.duplicateBeansXml();
                 }
+                WeldLogger.DEPLOYMENT_LOGGER.debugf("Found beans.xml: %s", rootBeansXml);
+                beanArchiveMetadata.add(new BeanArchiveMetadata(rootBeansXml, classesRoot, parseBeansXml(rootBeansXml, parser, deploymentUnit), true));
+            } else if (beansXmlPresent) {
+                WeldLogger.DEPLOYMENT_LOGGER.debugf("Found beans.xml: %s", beansXml);
+                beanArchiveMetadata.add(new BeanArchiveMetadata(beansXml, classesRoot, parseBeansXml(beansXml, parser, deploymentUnit), true));
             }
         } else if (!DeploymentTypeMarker.isType(DeploymentType.EAR, deploymentUnit)) {
             final VirtualFile rootBeansXml = deploymentRoot.getRoot().getChild(META_INF_BEANS_XML);
