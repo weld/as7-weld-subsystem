@@ -21,8 +21,19 @@
  */
 package org.jboss.as.weld.injection;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
+
+import javax.enterprise.context.spi.CreationalContext;
+import javax.enterprise.inject.spi.Bean;
+import javax.enterprise.inject.spi.InjectionTarget;
+
+import org.jboss.as.ee.component.ComponentDescription;
+import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponentDescription;
 import org.jboss.as.naming.ManagedReference;
 import org.jboss.as.naming.ManagedReferenceFactory;
+import org.jboss.as.web.deployment.component.WebComponentDescription;
 import org.jboss.as.weld.WeldContainer;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.StartContext;
@@ -30,13 +41,8 @@ import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
+import org.jboss.weld.injection.producer.InjectionTargetService;
 import org.jboss.weld.manager.BeanManagerImpl;
-
-import javax.enterprise.context.spi.CreationalContext;
-import javax.enterprise.inject.spi.Bean;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 
 /**
  * Managed reference factory that can be used to create and inject components.
@@ -49,21 +55,23 @@ public class WeldManagedReferenceFactory implements ManagedReferenceFactory, Ser
     private final InjectedValue<WeldContainer> weldContainer;
     private final String ejbName;
     private final Set<Class<?>> interceptorClasses;
-    private final Map<Class<?>, WeldEEInjection> interceptorInjections = new HashMap<Class<?>, WeldEEInjection>();
+    private final Map<Class<?>, InjectionTarget> interceptorInjections = new HashMap<Class<?>, InjectionTarget>();
     private final ClassLoader classLoader;
     private final String beanDeploymentArchiveId;
+    private final ComponentDescription componentDescription;
 
-    private WeldEEInjection injectionTarget;
+    private InjectionTarget injectionTarget;
     private Bean<?> bean;
     private BeanManagerImpl beanManager;
 
-    public WeldManagedReferenceFactory(Class<?> componentClass, String ejbName, final Set<Class<?>> interceptorClasses, final ClassLoader classLoader, final String beanDeploymentArchiveId) {
+    public WeldManagedReferenceFactory(Class<?> componentClass, String ejbName, final Set<Class<?>> interceptorClasses, final ClassLoader classLoader, final String beanDeploymentArchiveId, ComponentDescription componentDescription) {
         this.componentClass = componentClass;
         this.ejbName = ejbName;
         this.beanDeploymentArchiveId = beanDeploymentArchiveId;
         this.weldContainer = new InjectedValue<WeldContainer>();
         this.interceptorClasses = interceptorClasses;
         this.classLoader = classLoader;
+        this.componentDescription = componentDescription;
     }
 
     @Override
@@ -111,10 +119,10 @@ public class WeldManagedReferenceFactory implements ManagedReferenceFactory, Ser
         final ClassLoader cl = SecurityActions.getContextClassLoader();
         try {
             SecurityActions.setContextClassLoader(classLoader);
-            beanManager = (BeanManagerImpl) weldContainer.getValue().getBeanManager(beanDeploymentArchiveId);
+            beanManager = weldContainer.getValue().getBeanManager(beanDeploymentArchiveId);
 
             for (final Class<?> interceptor : interceptorClasses) {
-                interceptorInjections.put(interceptor, WeldEEInjection.createWeldEEInjection(interceptor, null, beanManager));
+                interceptorInjections.put(interceptor, new NonContextualComponentInjectionTarget(interceptor, null, beanManager));
             }
 
             if (ejbName != null) {
@@ -124,7 +132,14 @@ public class WeldManagedReferenceFactory implements ManagedReferenceFactory, Ser
                     bean = beanManager.getBean(descriptor);
                 }
             }
-            injectionTarget = WeldEEInjection.createWeldEEInjection(componentClass, bean, beanManager);
+            NonContextualComponentInjectionTarget injectionTarget = new NonContextualComponentInjectionTarget(componentClass, bean, beanManager);
+            if (componentDescription instanceof MessageDrivenComponentDescription || componentDescription instanceof WebComponentDescription) {
+                // fire ProcessInjectionTarget for non-contextual components
+                this.injectionTarget = beanManager.fireProcessInjectionTarget(injectionTarget.getAnnotated(), injectionTarget);
+            } else {
+                this.injectionTarget = injectionTarget;
+            }
+            beanManager.getServices().get(InjectionTargetService.class).validateProducer(injectionTarget);
 
         } finally {
             SecurityActions.setContextClassLoader(cl);
