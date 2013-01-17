@@ -50,7 +50,7 @@ public class NonContextualComponentInjectionTarget<T> extends AbstractInjectionT
 
     @SuppressWarnings("unchecked")
     public NonContextualComponentInjectionTarget(Class<?> componentClass, Bean<T> bean, BeanManagerImpl beanManager) {
-        this(beanManager.getServices().get(ClassTransformer.class).getEnhancedAnnotatedType((Class<T>) componentClass), bean, beanManager);
+        this(beanManager.getServices().get(ClassTransformer.class).getEnhancedAnnotatedType((Class<T>) componentClass, beanManager.getId()), bean, beanManager);
     }
     public NonContextualComponentInjectionTarget(EnhancedAnnotatedType<T> type, Bean<T> bean, BeanManagerImpl beanManager) {
         super(type, bean, beanManager);

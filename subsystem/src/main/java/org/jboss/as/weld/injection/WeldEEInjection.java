@@ -44,7 +44,6 @@ import org.jboss.weld.bean.AbstractClassBean;
 import org.jboss.weld.exceptions.DefinitionException;
 import org.jboss.weld.logging.messages.ValidatorMessage;
 import org.jboss.weld.manager.BeanManagerImpl;
-import org.jboss.weld.resources.ClassTransformer;
 
 /**
  * Class that knows how to create and inject a class that requires CDI injection
@@ -112,7 +111,7 @@ class WeldEEInjection {
 
 
     public static WeldEEInjection createWeldEEInjection(Class<?> componentClass, Bean<?> bean, final BeanManagerImpl beanManager) {
-        final AnnotatedType<?> type = beanManager.getServices().get(ClassTransformer.class).getAnnotatedType(componentClass);
+        final AnnotatedType<?> type = beanManager.createAnnotatedType(componentClass);
         List<InjectableField> injectableFields = new ArrayList<InjectableField>();
         List<InjectableMethod> injectableMethods = new ArrayList<InjectableMethod>();
 
