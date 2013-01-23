@@ -50,12 +50,8 @@ public class WeldModuleResourceLoader implements ResourceLoader {
     private final Map<String, Class<?>> classes;
 
     public WeldModuleResourceLoader(Module module) {
-        this(module, new ConcurrentHashMap<String, Class<?>>());
-    }
-
-    public WeldModuleResourceLoader(Module module, Map<String, Class<?>> classes) {
         this.module = module;
-        this.classes = classes;
+        this.classes = new ConcurrentHashMap<String, Class<?>>();
     }
 
     /**

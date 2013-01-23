@@ -35,9 +35,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.Map;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListSet;
 import java.util.concurrent.CopyOnWriteArraySet;
 
@@ -52,8 +50,6 @@ import java.util.concurrent.CopyOnWriteArraySet;
 public class BeanDeploymentArchiveImpl implements BeanDeploymentArchive {
 
     private final Set<String> beanClasses;
-
-    private final Map<String, Class<?>> additionalBeanClasses;
 
     private final Set<BeanDeploymentArchive> beanDeploymentArchives;
 
@@ -77,12 +73,11 @@ public class BeanDeploymentArchiveImpl implements BeanDeploymentArchive {
 
     public BeanDeploymentArchiveImpl(Set<String> beanClasses, BeansXml beansXml, Module module, String id, boolean root) {
         this.beanClasses = new ConcurrentSkipListSet<String>(beanClasses);
-        this.additionalBeanClasses = new ConcurrentHashMap<String, Class<?>>();
         this.beanDeploymentArchives = new CopyOnWriteArraySet<BeanDeploymentArchive>();
         this.beansXml = beansXml;
         this.id = id;
         this.serviceRegistry = new SimpleServiceRegistry();
-        this.resourceLoader = new WeldModuleResourceLoader(module, this.additionalBeanClasses);
+        this.resourceLoader = new WeldModuleResourceLoader(module);
         this.serviceRegistry.add(ResourceLoader.class, resourceLoader);
         this.module = module;
         this.ejbDescriptors = new HashSet<EjbDescriptor<?>>();
@@ -115,7 +110,7 @@ public class BeanDeploymentArchiveImpl implements BeanDeploymentArchive {
     }
 
     public void addBeanClass(Class<?> clazz) {
-        this.additionalBeanClasses.put(clazz.getName(), clazz);
+        this.resourceLoader.addAdditionalClass(clazz);
     }
 
     /**
@@ -124,10 +119,6 @@ public class BeanDeploymentArchiveImpl implements BeanDeploymentArchive {
     @Override
     public Collection<String> getBeanClasses() {
         return Collections.unmodifiableSet(new HashSet<String>(beanClasses));
-    }
-
-    public Map<String, Class<?>> getAdditionalBeanClasses() {
-        return Collections.unmodifiableMap(additionalBeanClasses);
     }
 
     /**
@@ -183,34 +174,26 @@ public class BeanDeploymentArchiveImpl implements BeanDeploymentArchive {
         if (this == target) {
             return true;
         }
-        if (target instanceof BeanDeploymentArchiveImpl) {
-            BeanDeploymentArchiveImpl targetArchive = (BeanDeploymentArchiveImpl) target;
-            String targetClass = null;
-            if (!targetArchive.getBeanClasses().isEmpty()) {
-                targetClass = targetArchive.getBeanClasses().iterator().next();
-            } else if (!targetArchive.getAdditionalBeanClasses().keySet().isEmpty()) {
-                targetClass = targetArchive.getAdditionalBeanClasses().keySet().iterator().next();
-            } else {
-                // the target archive has no classes - thus it should not matter whether we see the BDA or not
-                return false;
-            }
-
-            if (module == null) {
-                /*
-                 * This BDA is the bootstrap BDA - it bundles classes loaded by the bootstrap classloader. We assume that a
-                 * bean whose class is loaded by the bootstrap classloader can only see other beans in the "bootstrap BDA".
-                 */
-                return target instanceof BeanDeploymentArchiveImpl && Reflections.<BeanDeploymentArchiveImpl>cast(target).getModule() == null;
-            }
-
-            try {
-                module.getClassLoader().loadClass(targetClass);
-                return true;
-            } catch (ClassNotFoundException e) {
-                return false;
-            }
+        Iterator<String> beanClasses = target.getBeanClasses().iterator();
+        if (!beanClasses.hasNext()) {
+            // the target archive has no classes - thus it should not matter whether we see the BDA or not
+            return false;
         }
-        return false;
+        if (module == null) {
+            /*
+             * This BDA is the bootstrap BDA - it bundles classes loaded by the bootstrap classloader. We assume that a
+             * bean whose class is loaded by the bootstrap classloader can only see other beans in the "bootstrap BDA".
+             */
+            return target instanceof BeanDeploymentArchiveImpl && Reflections.<BeanDeploymentArchiveImpl>cast(target).getModule() == null;
+        }
+
+        String targetClass = beanClasses.next();
+        try {
+            module.getClassLoader().loadClass(targetClass);
+            return true;
+        } catch (ClassNotFoundException e) {
+            return false;
+        }
     }
 
     @Override
