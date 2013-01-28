@@ -48,8 +48,8 @@
         <jboss.metadata.web.version>7.0.3.Final</jboss.metadata.web.version>
         <jboss.msc.version>1.0.2.GA</jboss.msc.version>
         <jboss.vfs.version>3.1.0.Final</jboss.vfs.version>
-        <weld.version>2.0.0-SNAPSHOT</weld.version>
-        <weld.spi.version>2.0-SNAPSHOT</weld.spi.version>
+        <weld.version>2.0.0.Beta3</weld.version>
+        <weld.spi.version>2.0.Beta3</weld.spi.version>
     </properties>
 
     <dependencyManagement>
