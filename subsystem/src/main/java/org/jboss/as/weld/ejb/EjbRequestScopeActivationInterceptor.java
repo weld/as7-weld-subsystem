@@ -22,7 +22,7 @@ import java.security.AccessController;
 import java.security.PrivilegedAction;
 
 import org.jboss.as.server.CurrentServiceContainer;
-import org.jboss.as.weld.WeldContainer;
+import org.jboss.as.weld.WeldBootstrapService;
 import org.jboss.invocation.Interceptor;
 import org.jboss.invocation.InterceptorContext;
 import org.jboss.invocation.InterceptorFactory;
@@ -62,7 +62,7 @@ public class EjbRequestScopeActivationInterceptor extends AbstractEJBRequestScop
     protected BeanManagerImpl getBeanManager() {
         // get the reference to the bean manager on the first invocation
         if (beanManager == null) {
-            final WeldContainer weldContainer = (WeldContainer) currentServiceContainer().getRequiredService(weldContainerServiceName).getValue();
+            final WeldBootstrapService weldContainer = (WeldBootstrapService) currentServiceContainer().getRequiredService(weldContainerServiceName).getValue();
             beanManager = (BeanManagerImpl) weldContainer.getBeanManager();
         }
         return beanManager;

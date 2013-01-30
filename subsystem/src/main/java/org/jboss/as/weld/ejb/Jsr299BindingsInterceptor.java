@@ -33,7 +33,7 @@ import org.jboss.as.ee.component.Component;
 import org.jboss.as.ee.component.ComponentInstanceInterceptorFactory;
 import org.jboss.as.naming.ManagedReference;
 import org.jboss.as.naming.ValueManagedReference;
-import org.jboss.as.weld.WeldContainer;
+import org.jboss.as.weld.WeldBootstrapService;
 import org.jboss.as.weld.services.bootstrap.WeldEjbServices;
 import org.jboss.as.weld.util.Compatibility;
 import org.jboss.invocation.InterceptorContext;
@@ -176,7 +176,6 @@ public class Jsr299BindingsInterceptor implements org.jboss.invocation.Intercept
         return interceptorBindings;
     }
 
-    @SuppressWarnings("unchecked")
     private void addInterceptorInstance(Interceptor<Object> interceptor, BeanManagerImpl beanManager, Map<String, SerializableContextualInstance<Interceptor<Object>, Object>> instances) {
         Object instance = beanManager.getContext(interceptor.getScope()).get(interceptor, creationalContext);
         SerializableContextualInstance<Interceptor<Object>, Object> serializableContextualInstance
@@ -187,7 +186,7 @@ public class Jsr299BindingsInterceptor implements org.jboss.invocation.Intercept
 
     public static class Factory extends ComponentInstanceInterceptorFactory {
 
-        private final InjectedValue<WeldContainer> weldContainer = new InjectedValue<WeldContainer>();
+        private final InjectedValue<WeldBootstrapService> weldContainer = new InjectedValue<WeldBootstrapService>();
         private final String beanArchiveId;
         private final String ejbName;
         private final InterceptionType interceptionType;
@@ -205,11 +204,11 @@ public class Jsr299BindingsInterceptor implements org.jboss.invocation.Intercept
 
             //we use the interception type as the context key
             //as there are potentially up to six instances of this interceptor for every component
-            final Jsr299BindingsInterceptor interceptor = new Jsr299BindingsInterceptor((BeanManagerImpl) weldContainer.getValue().getBeanManager(beanArchiveId), ejbName, context, interceptionType, classLoader);
+            final Jsr299BindingsInterceptor interceptor = new Jsr299BindingsInterceptor(weldContainer.getValue().getBeanManager(beanArchiveId), ejbName, context, interceptionType, classLoader);
             return interceptor;
         }
 
-        public InjectedValue<WeldContainer> getWeldContainer() {
+        public InjectedValue<WeldBootstrapService> getWeldContainer() {
             return weldContainer;
         }
     }
