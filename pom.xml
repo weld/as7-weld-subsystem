@@ -145,6 +145,12 @@
 
             <dependency>
                 <groupId>org.jboss.as</groupId>
+                <artifactId>jboss-as-webservices-server-integration</artifactId>
+                <version>${jboss.as7.version}</version>
+            </dependency>
+
+            <dependency>
+                <groupId>org.jboss.as</groupId>
                 <artifactId>jboss-as-subsystem-test</artifactId>
                 <version>${jboss.as7.version}</version>
             </dependency>

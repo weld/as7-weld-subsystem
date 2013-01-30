@@ -21,7 +21,10 @@
  */
 package org.jboss.as.weld.injection;
 
+import static org.jboss.weld.util.reflection.Reflections.cast;
+
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Set;
 
@@ -34,14 +37,18 @@ import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponentDescripti
 import org.jboss.as.naming.ManagedReference;
 import org.jboss.as.naming.ManagedReferenceFactory;
 import org.jboss.as.web.deployment.component.WebComponentDescription;
+import org.jboss.as.webservices.injection.WSComponentDescription;
 import org.jboss.as.weld.WeldContainer;
+import org.jboss.as.weld.WeldLogger;
 import org.jboss.msc.service.Service;
 import org.jboss.msc.service.StartContext;
 import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
+import org.jboss.weld.bean.ManagedBean;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.injection.producer.InjectionTargetService;
+import org.jboss.weld.literal.AnyLiteral;
 import org.jboss.weld.manager.BeanManagerImpl;
 
 /**
@@ -132,6 +139,15 @@ public class WeldManagedReferenceFactory implements ManagedReferenceFactory, Ser
                     bean = beanManager.getBean(descriptor);
                 }
             }
+
+            if (componentDescription instanceof WSComponentDescription) {
+                ManagedBean<?> bean = findManagedBeanForWSComponent(componentClass);
+                if (bean != null) {
+                    injectionTarget = bean.getInjectionTarget();
+                    return;
+                }
+            }
+
             NonContextualComponentInjectionTarget injectionTarget = new NonContextualComponentInjectionTarget(componentClass, bean, beanManager);
             if (componentDescription instanceof MessageDrivenComponentDescription || componentDescription instanceof WebComponentDescription) {
                 // fire ProcessInjectionTarget for non-contextual components
@@ -145,6 +161,25 @@ public class WeldManagedReferenceFactory implements ManagedReferenceFactory, Ser
             SecurityActions.setContextClassLoader(cl);
         }
 
+    }
+
+    private <T> ManagedBean<T> findManagedBeanForWSComponent(Class<T> definingClass) {
+        Set<Bean<?>> beans = beanManager.getBeans(definingClass, AnyLiteral.INSTANCE);
+        for (Iterator<Bean<?>> i = beans.iterator(); i.hasNext();) {
+            Bean<?> bean = i.next();
+            if (bean instanceof ManagedBean<?> && bean.getBeanClass().equals(definingClass)) {
+                continue;
+            }
+            i.remove();
+        }
+        if (beans.isEmpty()) {
+            WeldLogger.DEPLOYMENT_LOGGER.debugf("Could not find bean for %s, interception and decoration will be unavailable", componentClass);
+            return null;
+        }
+        if (beans.size() > 1) {
+            WeldLogger.DEPLOYMENT_LOGGER.debugf("Multiple beans for %s : %s ", componentClass, beans);
+        }
+        return cast(beans.iterator().next());
     }
 
     @Override

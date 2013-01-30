@@ -60,6 +60,7 @@
         <module name="org.jboss.as.server"/>
         <module name="org.jboss.as.transactions"/>
         <module name="org.jboss.as.web"/>
+        <module name="org.jboss.as.webservices.server.integration"/>
         <module name="org.jboss.ejb-client"/>
         <module name="org.jboss.ejb3"/>
         <module name="org.jboss.invocation"/>
