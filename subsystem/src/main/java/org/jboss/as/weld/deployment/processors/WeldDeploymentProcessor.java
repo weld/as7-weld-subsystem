@@ -21,6 +21,7 @@
  */
 package org.jboss.as.weld.deployment.processors;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -36,6 +37,7 @@ import javax.validation.ValidatorFactory;
 import org.jboss.as.ee.beanvalidation.BeanValidationAttachments;
 import org.jboss.as.ee.component.EEApplicationDescription;
 import org.jboss.as.ee.component.EEModuleDescription;
+import org.jboss.as.ee.naming.JavaNamespaceSetup;
 import org.jboss.as.jpa.config.Configuration;
 import org.jboss.as.jpa.config.PersistenceUnitMetadataHolder;
 import org.jboss.as.jpa.service.PersistenceUnitServiceImpl;
@@ -43,12 +45,14 @@ import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
 import org.jboss.as.naming.deployment.JndiNamingDependencyProcessor;
 import org.jboss.as.security.service.SimpleSecurityManager;
 import org.jboss.as.security.service.SimpleSecurityManagerService;
+import org.jboss.as.server.deployment.AttachmentKey;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.DeploymentUtils;
+import org.jboss.as.server.deployment.SetupAction;
 import org.jboss.as.server.deployment.module.ModuleDependency;
 import org.jboss.as.server.deployment.module.ModuleSpecification;
 import org.jboss.as.server.deployment.module.ResourceRoot;
@@ -216,7 +220,13 @@ public class WeldDeploymentProcessor implements DeploymentUnitProcessor {
 
         weldBootstrapServiceBuilder.install();
 
-        final WeldStartService weldStartService = new WeldStartService(module.getClassLoader());
+        final List<SetupAction> setupActions  = new ArrayList<SetupAction>();
+        JavaNamespaceSetup naming = deploymentUnit.getAttachment(AttachmentKey.create(JavaNamespaceSetup.class));
+        if(naming != null) {
+            setupActions.add(naming);
+        }
+
+        final WeldStartService weldStartService = new WeldStartService(setupActions, module.getClassLoader());
 
         serviceTarget.addService(deploymentUnit.getServiceName().append(WeldStartService.SERVICE_NAME), weldStartService)
                 .addDependency(weldBootstrapServiceName, WeldBootstrapService.class, weldStartService.getBootstrap())

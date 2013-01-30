@@ -110,4 +110,8 @@ public interface WeldLogger extends BasicLogger {
     @LogMessage(level = Logger.Level.WARN)
     @Message(value = "Found both WEB-INF/beans.xml and WEB-INF/classes/META-INF/beans.xml. It is not portable to use both locations at the same time. Weld is going to use the former location for this deployment.", id = 16013)
     void duplicateBeansXml();
+
+    @LogMessage(level = Logger.Level.ERROR)
+    @Message(value = "Exception tearing down thread state", id = 16014)
+    void exceptionClearingThreadState(@Cause Exception e);
 }
