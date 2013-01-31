@@ -18,7 +18,7 @@ package org.jboss.as.weld.ejb;
 
 import java.util.Map;
 
-import org.jboss.as.weld.util.ApplicationServerVersion;
+import org.jboss.as.weld.compatibility.ApplicationServerVersion;
 import org.jboss.ejb.client.SessionID;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.weld.ejb.api.SessionObjectReference;

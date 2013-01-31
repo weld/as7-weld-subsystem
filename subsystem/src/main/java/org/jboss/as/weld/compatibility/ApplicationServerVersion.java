@@ -14,22 +14,20 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.as.weld.util;
+package org.jboss.as.weld.compatibility;
 
-import org.jboss.as.weld.WeldExtension;
+import org.jboss.as.server.Main;
 
-public class Compatibility {
+public class ApplicationServerVersion {
 
-    private Compatibility() {
+    private static final String VERSION = Main.class.getPackage().getImplementationVersion();
+
+    public static final String AS712Final = "7.1.2.Final";
+
+    private ApplicationServerVersion() {
     }
 
-    public static final Class<?> SERIALIZABLE_CDI_INTERCEPTORS_KEY_CLASS = classForName("org.jboss.as.ejb3.component.stateful.SerializedCdiInterceptorsKey");
-
-    private static Class<?> classForName(String name) {
-        try {
-            return WeldExtension.class.getClassLoader().loadClass(name);
-        } catch (Exception ingored) {
-            return Object.class;
-        }
+    public static boolean isEqualOrNewer(String version) {
+        return VERSION.compareTo(version) >= 0;
     }
 }
