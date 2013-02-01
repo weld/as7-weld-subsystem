@@ -21,18 +21,6 @@
  */
 package org.jboss.as.weld.services.bootstrap;
 
-import org.jboss.as.weld.WeldLogger;
-import org.jboss.msc.service.Service;
-import org.jboss.msc.service.ServiceName;
-import org.jboss.msc.service.StartContext;
-import org.jboss.msc.service.StartException;
-import org.jboss.msc.service.StopContext;
-import org.jboss.weld.injection.spi.ResourceInjectionServices;
-import org.jboss.weld.injection.spi.ResourceReference;
-import org.jboss.weld.injection.spi.ResourceReferenceFactory;
-import org.jboss.weld.injection.spi.helpers.AbstractResourceServices;
-import org.jboss.weld.injection.spi.helpers.SimpleResourceReference;
-
 import javax.annotation.Resource;
 import javax.ejb.TimerService;
 import javax.ejb.spi.HandleDelegate;
@@ -41,10 +29,20 @@ import javax.naming.Context;
 import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
-public class WeldResourceInjectionServices extends AbstractResourceServices implements Service<WeldResourceInjectionServices>,
-        ResourceInjectionServices {
+import org.jboss.as.ee.component.EEModuleDescription;
+import org.jboss.as.naming.ManagedReference;
+import org.jboss.as.naming.ManagedReferenceFactory;
+import org.jboss.as.naming.deployment.ContextNames;
+import org.jboss.as.weld.WeldLogger;
+import org.jboss.msc.service.ServiceController;
+import org.jboss.msc.service.ServiceRegistry;
+import org.jboss.weld.injection.spi.ResourceInjectionServices;
+import org.jboss.weld.injection.spi.ResourceReference;
+import org.jboss.weld.injection.spi.ResourceReferenceFactory;
+import org.jboss.weld.injection.spi.helpers.AbstractResourceServices;
+import org.jboss.weld.injection.spi.helpers.SimpleResourceReference;
 
-    public static final ServiceName SERVICE_NAME = ServiceName.of("WeldResourceInjectionServices");
+public class WeldResourceInjectionServices extends AbstractResourceServices implements ResourceInjectionServices {
 
     private static final String USER_TRANSACTION_LOCATION = "java:comp/UserTransaction";
     private static final String USER_TRANSACTION_CLASS_NAME = "javax.transaction.UserTransaction";
@@ -54,18 +52,9 @@ public class WeldResourceInjectionServices extends AbstractResourceServices impl
 
     private final Context context;
 
-    @Override
-    public void start(StartContext context) throws StartException {
-    }
+    private final ServiceRegistry serviceRegistry;
 
-    @Override
-    public void stop(StopContext context) {
-    }
-
-    @Override
-    public WeldResourceInjectionServices getValue() throws IllegalStateException, IllegalArgumentException {
-        return this;
-    }
+    private final EEModuleDescription moduleDescription;
 
     protected static String getEJBResourceName(InjectionPoint injectionPoint, String proposedName) {
         if (injectionPoint.getType() instanceof Class<?>) {
@@ -87,7 +76,9 @@ public class WeldResourceInjectionServices extends AbstractResourceServices impl
     }
 
 
-    public WeldResourceInjectionServices() {
+    public WeldResourceInjectionServices(final ServiceRegistry serviceRegistry, final EEModuleDescription moduleDescription) {
+        this.serviceRegistry = serviceRegistry;
+        this.moduleDescription = moduleDescription;
         try {
             this.context = new InitialContext();
         } catch (NamingException e) {
@@ -99,6 +90,7 @@ public class WeldResourceInjectionServices extends AbstractResourceServices impl
     protected Context getContext() {
         return context;
     }
+
 
     @Override
     protected String getResourceName(InjectionPoint injectionPoint) {
@@ -115,32 +107,65 @@ public class WeldResourceInjectionServices extends AbstractResourceServices impl
         return getEJBResourceName(injectionPoint, proposedName);
     }
 
-    /*
-     * FIXME:
-     * This is a trivial implementation that simply reuses the deprecated method.
-     * Reimplement in a way that supports boot time validation an caching. 
-     */
     @Override
     public ResourceReferenceFactory<Object> registerResourceInjectionPoint(final InjectionPoint injectionPoint) {
-        return new ResourceReferenceFactory<Object>() {
-            @Override
-            public ResourceReference<Object> createResource() {
-                return new SimpleResourceReference<Object>(resolveResource(injectionPoint));
-            }
-        };
+        final String result = getResourceName(injectionPoint);
+        if (result.startsWith("java:global")
+                || result.startsWith("java:app")
+                || result.startsWith("java:module")
+                || result.startsWith("java:comp")
+                || result.startsWith("java:jboss")) {
+            return handleServiceLookup(result);
+        } else {
+
+            return new ResourceReferenceFactory<Object>() {
+                @Override
+                public ResourceReference<Object> createResource() {
+                    return new SimpleResourceReference<Object>(resolveResource(injectionPoint));
+                }
+            };
+        }
     }
 
-    /*
-     * FIXME:
-     * This is a trivial implementation that simply reuses the deprecated method.
-     * Reimplement in a way that supports boot time validation an caching. 
-     */
     @Override
     public ResourceReferenceFactory<Object> registerResourceInjectionPoint(final String jndiName, final String mappedName) {
+        final String result = getResourceName(jndiName, mappedName);
+        if (result.startsWith("java:global")
+                || result.startsWith("java:app")
+                || result.startsWith("java:module")
+                || result.startsWith("java:comp")
+                || result.startsWith("java:jboss")) {
+            return handleServiceLookup(result);
+        } else {
+
+            return new ResourceReferenceFactory<Object>() {
+                @Override
+                public ResourceReference<Object> createResource() {
+                    return new SimpleResourceReference<Object>(resolveResource(jndiName, mappedName));
+                }
+            };
+        }
+    }
+
+    private ResourceReferenceFactory<Object> handleServiceLookup(final String result) {
+        final ContextNames.BindInfo ejbBindInfo = ContextNames.bindInfoForEnvEntry(moduleDescription.getApplicationName(), moduleDescription.getModuleName(), moduleDescription.getModuleName(), false,  result);
         return new ResourceReferenceFactory<Object>() {
             @Override
             public ResourceReference<Object> createResource() {
-                return new SimpleResourceReference<Object>(resolveResource(jndiName, mappedName));
+                ServiceController<?> controller = serviceRegistry.getRequiredService(ejbBindInfo.getBinderServiceName());
+                final ManagedReferenceFactory factory = (ManagedReferenceFactory) controller.getValue();
+                final ManagedReference instance = factory.getReference();
+                return new ResourceReference<Object>() {
+                    @Override
+                    public Object getInstance() {
+                        return instance.getInstance();
+                    }
+
+                    @Override
+                    public void release() {
+                        instance.release();
+                    }
+                };
             }
         };
     }

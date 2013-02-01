@@ -21,7 +21,6 @@
  */
 package org.jboss.as.weld.services.bootstrap;
 
-
 import java.util.HashMap;
 
 import javax.enterprise.inject.spi.InjectionPoint;
@@ -36,6 +35,7 @@ import org.jboss.as.jpa.service.PersistenceUnitServiceImpl;
 import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.weld.WeldMessages;
+import org.jboss.as.weld.util.ImmediateResourceReferenceFactory;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceRegistry;
@@ -56,6 +56,16 @@ public class WeldJpaInjectionServices implements JpaInjectionServices {
 
     @Override
     public EntityManager resolvePersistenceContext(InjectionPoint injectionPoint) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public EntityManagerFactory resolvePersistenceUnit(InjectionPoint injectionPoint) {
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ResourceReferenceFactory<EntityManager> registerPersistenceContextInjectionPoint(final InjectionPoint injectionPoint) {
         //TODO: cache this stuff
         final PersistenceContext context = injectionPoint.getAnnotated().getAnnotation(PersistenceContext.class);
         if (context == null) {
@@ -67,12 +77,18 @@ public class WeldJpaInjectionServices implements JpaInjectionServices {
         final ServiceController<?> serviceController = serviceRegistry.getRequiredService(persistenceUnitServiceName);
         //now we have the service controller, as this method is only called at runtime the service should
         //always be up
-        PersistenceUnitServiceImpl persistenceUnitService = (PersistenceUnitServiceImpl) serviceController.getValue();
-        return new TransactionScopedEntityManager(scopedPuName, new HashMap<Object, Object>(), persistenceUnitService.getEntityManagerFactory());
+        final PersistenceUnitServiceImpl persistenceUnitService = (PersistenceUnitServiceImpl) serviceController.getValue();
+        return new ResourceReferenceFactory<EntityManager>() {
+            @Override
+            public ResourceReference<EntityManager> createResource() {
+                final TransactionScopedEntityManager result = new TransactionScopedEntityManager(scopedPuName, new HashMap<Object, Object>(), persistenceUnitService.getEntityManagerFactory());
+                return new SimpleResourceReference<EntityManager>(result);
+            }
+        };
     }
 
     @Override
-    public EntityManagerFactory resolvePersistenceUnit(InjectionPoint injectionPoint) {
+    public ResourceReferenceFactory<EntityManagerFactory> registerPersistenceUnitInjectionPoint(final InjectionPoint injectionPoint) {
         //TODO: cache this stuff
         final PersistenceUnit context = injectionPoint.getAnnotated().getAnnotation(PersistenceUnit.class);
         if (context == null) {
@@ -84,38 +100,9 @@ public class WeldJpaInjectionServices implements JpaInjectionServices {
         final ServiceController<?> serviceController = serviceRegistry.getRequiredService(persistenceUnitServiceName);
         //now we have the service controller, as this method is only called at runtime the service should
         //always be up
-        PersistenceUnitServiceImpl persistenceUnitService = (PersistenceUnitServiceImpl) serviceController.getValue();
-        return persistenceUnitService.getEntityManagerFactory();
-    }
+        final PersistenceUnitServiceImpl persistenceUnitService = (PersistenceUnitServiceImpl) serviceController.getValue();
 
-    /*
-     * FIXME:
-     * This is a trivial implementation that simply reuses the deprecated method.
-     * Reimplement in a way that supports boot time validation an caching. 
-     */
-    @Override
-    public ResourceReferenceFactory<EntityManager> registerPersistenceContextInjectionPoint(final InjectionPoint injectionPoint) {
-        return new ResourceReferenceFactory<EntityManager>() {
-            @Override
-            public ResourceReference<EntityManager> createResource() {
-                return new SimpleResourceReference<EntityManager>(resolvePersistenceContext(injectionPoint));
-            }
-        };
-    }
-
-    /*
-     * FIXME:
-     * This is a trivial implementation that simply reuses the deprecated method.
-     * Reimplement in a way that supports boot time validation an caching. 
-     */
-    @Override
-    public ResourceReferenceFactory<EntityManagerFactory> registerPersistenceUnitInjectionPoint(final InjectionPoint injectionPoint) {
-        return new ResourceReferenceFactory<EntityManagerFactory>() {
-            @Override
-            public ResourceReference<EntityManagerFactory> createResource() {
-                return new SimpleResourceReference<EntityManagerFactory>(resolvePersistenceUnit(injectionPoint));
-            }
-        };
+        return new ImmediateResourceReferenceFactory<EntityManagerFactory>(persistenceUnitService.getEntityManagerFactory());
     }
 
     @Override

@@ -102,10 +102,10 @@ public interface WeldMessages {
     IllegalArgumentException annotationNotFound(Class<? extends Annotation> type,  Member member);
 
     @Message(id = 16066, value = "Could not resolve @EJB injection for %s on %s")
-    IllegalArgumentException ejbNotResolved(EJB ejb, Member member);
+    IllegalStateException ejbNotResolved(EJB ejb, Member member);
 
     @Message(id = 16067, value = "Resolved more than one EJB for @EJB injection of %s on %s. Found %s")
-    IllegalArgumentException moreThanOneEjbResolved(EJB ejb, Member member, final Set<ViewDescription> viewService);
+    IllegalStateException moreThanOneEjbResolved(EJB ejb, Member member, final Set<ViewDescription> viewService);
 
     @Message(id = 16068, value = "Could not determine bean class from injection point type of %s")
     IllegalArgumentException couldNotDetermineUnderlyingType(Type type);

@@ -33,6 +33,7 @@ import org.jboss.as.ee.component.ComponentView;
 import org.jboss.as.ee.component.EEApplicationDescription;
 import org.jboss.as.ee.component.EEModuleDescription;
 import org.jboss.as.ee.component.ViewDescription;
+import org.jboss.as.naming.ManagedReference;
 import org.jboss.as.naming.ManagedReferenceFactory;
 import org.jboss.as.naming.deployment.ContextNames;
 import org.jboss.as.weld.WeldMessages;
@@ -42,7 +43,6 @@ import org.jboss.vfs.VirtualFile;
 import org.jboss.weld.injection.spi.EjbInjectionServices;
 import org.jboss.weld.injection.spi.ResourceReference;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
-import org.jboss.weld.injection.spi.helpers.SimpleResourceReference;
 
 /**
  * Implementation of EjbInjectionServices.
@@ -82,7 +82,11 @@ public class WeldEjbInjectionServices implements EjbInjectionServices {
 
     @Override
     public Object resolveEjb(InjectionPoint injectionPoint) {
-        //TODO: some of this stuff should be cached
+        throw new UnsupportedOperationException();
+    }
+
+    @Override
+    public ResourceReferenceFactory<Object> registerEjbInjectionPoint(final InjectionPoint injectionPoint) {
         EJB ejb = injectionPoint.getAnnotated().getAnnotation(EJB.class);
         if (ejb == null) {
             throw WeldMessages.MESSAGES.annotationNotFound(EJB.class, injectionPoint.getMember());
@@ -92,9 +96,25 @@ public class WeldEjbInjectionServices implements EjbInjectionServices {
         }
         if (!ejb.lookup().equals("")) {
             final ContextNames.BindInfo ejbBindInfo = ContextNames.bindInfoFor(moduleDescription.getApplicationName(), moduleDescription.getModuleName(), moduleDescription.getModuleName(), ejb.lookup());
-            ServiceController<?> controller = serviceRegistry.getRequiredService(ejbBindInfo.getBinderServiceName());
-            ManagedReferenceFactory factory = (ManagedReferenceFactory) controller.getValue();
-            return factory.getReference().getInstance();
+            return new ResourceReferenceFactory<Object>() {
+                @Override
+                public ResourceReference<Object> createResource() {
+                    ServiceController<?> controller = serviceRegistry.getRequiredService(ejbBindInfo.getBinderServiceName());
+                    final ManagedReferenceFactory factory = (ManagedReferenceFactory) controller.getValue();
+                    final ManagedReference instance = factory.getReference();
+                    return new ResourceReference<Object>() {
+                        @Override
+                        public Object getInstance() {
+                            return instance.getInstance();
+                        }
+
+                        @Override
+                        public void release() {
+                            instance.release();
+                        }
+                    };
+                }
+            };
         } else {
             final Set<ViewDescription> viewService;
             if (ejb.beanName().isEmpty()) {
@@ -116,29 +136,31 @@ public class WeldEjbInjectionServices implements EjbInjectionServices {
                 throw WeldMessages.MESSAGES.moreThanOneEjbResolved(ejb, injectionPoint.getMember(), viewService);
             }
             final ViewDescription viewDescription = viewService.iterator().next();
-            final ServiceController<?> controller = serviceRegistry.getRequiredService(viewDescription.getServiceName());
-            final ComponentView view = (ComponentView) controller.getValue();
-            try {
-                return view.createInstance().getInstance();
-            } catch (Exception e) {
-                throw new RuntimeException(e);
-            }
-        }
-    }
+            return new ResourceReferenceFactory<Object>() {
+                @Override
+                public ResourceReference<Object> createResource() {
+                    final ManagedReference instance;
+                    try {
+                        final ServiceController<?> controller = serviceRegistry.getRequiredService(viewDescription.getServiceName());
+                        final ComponentView view = (ComponentView) controller.getValue();
+                        instance = view.createInstance();
+                        return new ResourceReference<Object>() {
+                            @Override
+                            public Object getInstance() {
+                                return instance.getInstance();
+                            }
 
-    /*
-     * FIXME:
-     * This is a trivial implementation that simply reuses the deprecated method.
-     * Reimplement in a way that supports boot time validation an caching. 
-     */
-    @Override
-    public ResourceReferenceFactory<Object> registerEjbInjectionPoint(final InjectionPoint injectionPoint) {
-        return new ResourceReferenceFactory<Object>() {
-            @Override
-            public ResourceReference<Object> createResource() {
-                return new SimpleResourceReference<Object>(resolveEjb(injectionPoint));
-            }
-        };
+                            @Override
+                            public void release() {
+                                instance.release();
+                            }
+                        };
+                    } catch (Exception e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            };
+        }
     }
 
     @Override

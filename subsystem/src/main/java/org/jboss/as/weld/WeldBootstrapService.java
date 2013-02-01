@@ -32,7 +32,6 @@ import javax.enterprise.inject.spi.BeanManager;
 import org.jboss.as.weld.deployment.BeanDeploymentArchiveImpl;
 import org.jboss.as.weld.deployment.WeldDeployment;
 import org.jboss.as.weld.services.ModuleGroupSingletonProvider;
-import org.jboss.as.weld.services.bootstrap.WeldResourceInjectionServices;
 import org.jboss.as.weld.services.bootstrap.WeldSecurityServices;
 import org.jboss.as.weld.services.bootstrap.WeldTransactionServices;
 import org.jboss.msc.service.Service;
@@ -43,7 +42,6 @@ import org.jboss.msc.value.InjectedValue;
 import org.jboss.weld.bootstrap.WeldBootstrap;
 import org.jboss.weld.bootstrap.api.Environment;
 import org.jboss.weld.bootstrap.spi.BeanDeploymentArchive;
-import org.jboss.weld.injection.spi.ResourceInjectionServices;
 import org.jboss.weld.manager.BeanManagerImpl;
 import org.jboss.weld.security.spi.SecurityServices;
 import org.jboss.weld.transaction.spi.TransactionServices;
@@ -66,7 +64,6 @@ public class WeldBootstrapService implements Service<WeldBootstrapService> {
 
     private final String deploymentName;
 
-    private final InjectedValue<WeldResourceInjectionServices> resourceInjectionServices = new InjectedValue<WeldResourceInjectionServices>();
     private final InjectedValue<WeldSecurityServices> securityServices = new InjectedValue<WeldSecurityServices>();
     private final InjectedValue<WeldTransactionServices> weldTransactionServices = new InjectedValue<WeldTransactionServices>();
 
@@ -107,11 +104,6 @@ public class WeldBootstrapService implements Service<WeldBootstrapService> {
         // set up injected services
         addWeldService(SecurityServices.class, securityServices.getValue());
         addWeldService(TransactionServices.class, weldTransactionServices.getValue());
-
-        addWeldService(ResourceInjectionServices.class, resourceInjectionServices.getValue());
-        for (BeanDeploymentArchive bda : getBeanDeploymentArchives()) {
-            bda.getServices().add(ResourceInjectionServices.class, resourceInjectionServices.getValue());
-        }
 
         ModuleGroupSingletonProvider.addClassLoaders(deployment.getModule().getClassLoader(),
                 deployment.getSubDeploymentClassLoaders());
@@ -202,10 +194,6 @@ public class WeldBootstrapService implements Service<WeldBootstrapService> {
     @Override
     public WeldBootstrapService getValue() throws IllegalStateException, IllegalArgumentException {
         return this;
-    }
-
-    public InjectedValue<WeldResourceInjectionServices> getResourceInjectionServices() {
-        return resourceInjectionServices;
     }
 
     public InjectedValue<WeldSecurityServices> getSecurityServices() {
