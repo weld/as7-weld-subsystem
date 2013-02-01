@@ -103,9 +103,11 @@ public class LegacyBeansXmlProcessor implements DeploymentUnitProcessor {
                 if (beansXmlPresent) {
                     // warn that it is not portable to use both locations at the same time
                     WeldLogger.DEPLOYMENT_LOGGER.duplicateBeansXml();
+                    beanArchiveMetadata.add(new BeanArchiveMetadata(rootBeansXml, beansXml, classesRoot, parseBeansXml(rootBeansXml, parser, deploymentUnit), true));
+                } else {
+                    WeldLogger.DEPLOYMENT_LOGGER.debugf("Found beans.xml: %s", rootBeansXml);
+                    beanArchiveMetadata.add(new BeanArchiveMetadata(rootBeansXml, classesRoot, parseBeansXml(rootBeansXml, parser, deploymentUnit), true));
                 }
-                WeldLogger.DEPLOYMENT_LOGGER.debugf("Found beans.xml: %s", rootBeansXml);
-                beanArchiveMetadata.add(new BeanArchiveMetadata(rootBeansXml, classesRoot, parseBeansXml(rootBeansXml, parser, deploymentUnit), true));
             } else if (beansXmlPresent) {
                 WeldLogger.DEPLOYMENT_LOGGER.debugf("Found beans.xml: %s", beansXml);
                 beanArchiveMetadata.add(new BeanArchiveMetadata(beansXml, classesRoot, parseBeansXml(beansXml, parser, deploymentUnit), true));
