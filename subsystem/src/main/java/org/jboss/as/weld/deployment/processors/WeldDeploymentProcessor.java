@@ -241,7 +241,7 @@ public class WeldDeploymentProcessor implements DeploymentUnitProcessor {
         weldBootstrapServiceBuilder.install();
 
         final List<SetupAction> setupActions  = new ArrayList<SetupAction>();
-        JavaNamespaceSetup naming = deploymentUnit.getAttachment(AttachmentKey.create(JavaNamespaceSetup.class));
+        JavaNamespaceSetup naming = deploymentUnit.getAttachment(AttachmentKey.<JavaNamespaceSetup>create(JavaNamespaceSetup.class));
         if(naming != null) {
             setupActions.add(naming);
         }
