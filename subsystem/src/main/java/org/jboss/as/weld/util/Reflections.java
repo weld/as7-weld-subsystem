@@ -21,6 +21,8 @@
  */
 package org.jboss.as.weld.util;
 
+import static org.jboss.weld.util.reflection.Reflections.cast;
+
 
 /**
  *
@@ -43,11 +45,14 @@ public class Reflections {
     }
 
     public static boolean isAccessible(String className, ClassLoader classLoader) {
+        return loadClass(className, classLoader) != null;
+    }
+
+    public static <T> Class<T> loadClass(String className, ClassLoader classLoader) {
         try {
-            classLoader.loadClass(className);
-            return true;
+            return cast(classLoader.loadClass(className));
         } catch (Exception e) {
-            return false;
+            return null;
         }
     }
 

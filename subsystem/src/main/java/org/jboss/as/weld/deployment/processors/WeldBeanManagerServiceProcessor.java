@@ -137,7 +137,7 @@ public class WeldBeanManagerServiceProcessor implements DeploymentUnitProcessor 
 
     }
 
-    private static class BeanManagerManagedReferenceFactory implements ManagedReferenceFactory {
+    public static class BeanManagerManagedReferenceFactory implements ManagedReferenceFactory {
         private final InjectedValue<BeanManager> beanManager = new InjectedValue<BeanManager>();
 
         @Override

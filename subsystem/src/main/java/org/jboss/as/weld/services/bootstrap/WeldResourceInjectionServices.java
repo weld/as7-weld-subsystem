@@ -21,6 +21,8 @@
  */
 package org.jboss.as.weld.services.bootstrap;
 
+import java.lang.reflect.Method;
+
 import javax.annotation.Resource;
 import javax.ejb.TimerService;
 import javax.ejb.spi.HandleDelegate;
@@ -30,19 +32,17 @@ import javax.naming.InitialContext;
 import javax.naming.NamingException;
 
 import org.jboss.as.ee.component.EEModuleDescription;
-import org.jboss.as.naming.ManagedReference;
-import org.jboss.as.naming.ManagedReferenceFactory;
 import org.jboss.as.naming.deployment.ContextNames;
+import org.jboss.as.naming.deployment.ContextNames.BindInfo;
 import org.jboss.as.weld.WeldLogger;
-import org.jboss.msc.service.ServiceController;
+import org.jboss.as.weld.util.ResourceInjectionUtilities;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
 import org.jboss.weld.injection.spi.ResourceReference;
 import org.jboss.weld.injection.spi.ResourceReferenceFactory;
-import org.jboss.weld.injection.spi.helpers.AbstractResourceServices;
 import org.jboss.weld.injection.spi.helpers.SimpleResourceReference;
 
-public class WeldResourceInjectionServices extends AbstractResourceServices implements ResourceInjectionServices {
+public class WeldResourceInjectionServices extends AbstractResourceInjectionServices implements ResourceInjectionServices {
 
     private static final String USER_TRANSACTION_LOCATION = "java:comp/UserTransaction";
     private static final String USER_TRANSACTION_CLASS_NAME = "javax.transaction.UserTransaction";
@@ -51,10 +51,6 @@ public class WeldResourceInjectionServices extends AbstractResourceServices impl
     private static final String ORB_CLASS_NAME = "org.omg.CORBA.ORB";
 
     private final Context context;
-
-    private final ServiceRegistry serviceRegistry;
-
-    private final EEModuleDescription moduleDescription;
 
     protected static String getEJBResourceName(InjectionPoint injectionPoint, String proposedName) {
         if (injectionPoint.getType() instanceof Class<?>) {
@@ -75,10 +71,8 @@ public class WeldResourceInjectionServices extends AbstractResourceServices impl
         return proposedName;
     }
 
-
     public WeldResourceInjectionServices(final ServiceRegistry serviceRegistry, final EEModuleDescription moduleDescription) {
-        this.serviceRegistry = serviceRegistry;
-        this.moduleDescription = moduleDescription;
+        super(serviceRegistry, moduleDescription);
         try {
             this.context = new InitialContext();
         } catch (NamingException e) {
@@ -86,13 +80,6 @@ public class WeldResourceInjectionServices extends AbstractResourceServices impl
         }
     }
 
-    @Override
-    protected Context getContext() {
-        return context;
-    }
-
-
-    @Override
     protected String getResourceName(InjectionPoint injectionPoint) {
         Resource resource = injectionPoint.getAnnotated().getAnnotation(Resource.class);
         String mappedName = resource.mappedName();
@@ -103,19 +90,15 @@ public class WeldResourceInjectionServices extends AbstractResourceServices impl
         if (!mappedName.isEmpty()) {
             return mappedName;
         }
-        String proposedName = super.getResourceName(injectionPoint);
+        String proposedName = ResourceInjectionUtilities.getResourceName(injectionPoint);
         return getEJBResourceName(injectionPoint, proposedName);
     }
 
     @Override
     public ResourceReferenceFactory<Object> registerResourceInjectionPoint(final InjectionPoint injectionPoint) {
         final String result = getResourceName(injectionPoint);
-        if (result.startsWith("java:global")
-                || result.startsWith("java:app")
-                || result.startsWith("java:module")
-                || result.startsWith("java:comp")
-                || result.startsWith("java:jboss")) {
-            return handleServiceLookup(result);
+        if (isKnownNamespace(result)) {
+            return handleServiceLookup(result, injectionPoint);
         } else {
 
             return new ResourceReferenceFactory<Object>() {
@@ -129,13 +112,9 @@ public class WeldResourceInjectionServices extends AbstractResourceServices impl
 
     @Override
     public ResourceReferenceFactory<Object> registerResourceInjectionPoint(final String jndiName, final String mappedName) {
-        final String result = getResourceName(jndiName, mappedName);
-        if (result.startsWith("java:global")
-                || result.startsWith("java:app")
-                || result.startsWith("java:module")
-                || result.startsWith("java:comp")
-                || result.startsWith("java:jboss")) {
-            return handleServiceLookup(result);
+        final String result = ResourceInjectionUtilities.getResourceName(jndiName, mappedName);
+        if (isKnownNamespace(result)) {
+            return handleServiceLookup(result, null);
         } else {
 
             return new ResourceReferenceFactory<Object>() {
@@ -147,30 +126,47 @@ public class WeldResourceInjectionServices extends AbstractResourceServices impl
         }
     }
 
-    private ResourceReferenceFactory<Object> handleServiceLookup(final String result) {
-        final ContextNames.BindInfo ejbBindInfo = ContextNames.bindInfoForEnvEntry(moduleDescription.getApplicationName(), moduleDescription.getModuleName(), moduleDescription.getModuleName(), false,  result);
-        return new ResourceReferenceFactory<Object>() {
-            @Override
-            public ResourceReference<Object> createResource() {
-                ServiceController<?> controller = serviceRegistry.getRequiredService(ejbBindInfo.getBinderServiceName());
-                final ManagedReferenceFactory factory = (ManagedReferenceFactory) controller.getValue();
-                final ManagedReference instance = factory.getReference();
-                return new ResourceReference<Object>() {
-                    @Override
-                    public Object getInstance() {
-                        return instance.getInstance();
-                    }
-
-                    @Override
-                    public void release() {
-                        instance.release();
-                    }
-                };
-            }
-        };
+    private boolean isKnownNamespace(String name) {
+        return name.startsWith("java:global") || name.startsWith("java:app") || name.startsWith("java:module")
+                || name.startsWith("java:comp") || name.startsWith("java:jboss");
     }
 
     @Override
     public void cleanup() {
+    }
+
+    @Override
+    protected BindInfo getBindInfo(String result) {
+        return ContextNames.bindInfoForEnvEntry(moduleDescription.getApplicationName(), moduleDescription.getModuleName(),
+                moduleDescription.getModuleName(), false, result);
+    }
+
+    @Override
+    public Object resolveResource(InjectionPoint injectionPoint) {
+        if (!injectionPoint.getAnnotated().isAnnotationPresent(Resource.class)) {
+            throw new IllegalArgumentException("No @Resource annotation found on injection point " + injectionPoint);
+        }
+        if (injectionPoint.getMember() instanceof Method
+                && ((Method) injectionPoint.getMember()).getParameterTypes().length != 1) {
+            throw new IllegalArgumentException(
+                    "Injection point represents a method which doesn't follow JavaBean conventions (must have exactly one parameter) "
+                            + injectionPoint);
+        }
+        String name = getResourceName(injectionPoint);
+        try {
+            return context.lookup(name);
+        } catch (NamingException e) {
+            throw new RuntimeException("Error looking up " + name + " in JNDI", e);
+        }
+    }
+
+    @Override
+    public Object resolveResource(String jndiName, String mappedName) {
+        String name = ResourceInjectionUtilities.getResourceName(jndiName, mappedName);
+        try {
+            return context.lookup(name);
+        } catch (NamingException e) {
+            throw new RuntimeException("Error looking up " + name + " in JNDI", e);
+        }
     }
 }
