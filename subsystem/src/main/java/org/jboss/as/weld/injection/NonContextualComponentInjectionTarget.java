@@ -26,11 +26,7 @@ import javax.enterprise.inject.spi.Bean;
 import javax.enterprise.inject.spi.InjectionPoint;
 import javax.enterprise.inject.spi.InjectionTarget;
 
-import org.jboss.weld.Container;
 import org.jboss.weld.annotated.enhanced.EnhancedAnnotatedType;
-import org.jboss.weld.bean.SessionBean;
-import org.jboss.weld.injection.CurrentInjectionPoint;
-import org.jboss.weld.injection.DynamicInjectionPoint;
 import org.jboss.weld.injection.InjectionContextImpl;
 import org.jboss.weld.injection.producer.AbstractInjectionTarget;
 import org.jboss.weld.injection.producer.DefaultInstantiator;
@@ -67,31 +63,8 @@ public class NonContextualComponentInjectionTarget<T> extends AbstractInjectionT
         new InjectionContextImpl<T>(getBeanManager(), this, getType(), instance) {
 
             public void proceed() {
-                if (isStatelessSessionBean()) {
-                    CurrentInjectionPoint currentInjectionPoint = Container.instance().services().get(CurrentInjectionPoint.class);
-                    currentInjectionPoint.push(new DynamicInjectionPoint(getBeanManager().getServices()));
-                    try {
-                        injectFieldsAndInitializers();
-                    } finally {
-                        currentInjectionPoint.pop();
-                    }
-                } else {
-                    injectFieldsAndInitializers();
-                }
-            }
-
-            private boolean isStatelessSessionBean() {
-                if (getBean() instanceof SessionBean) {
-                    SessionBean<T> sessionBean = (SessionBean<T>) getBean();
-                    return sessionBean.getEjbDescriptor().isStateless();
-                }
-                return false;
-            }
-
-            private void injectFieldsAndInitializers() {
                 Beans.injectFieldsAndInitializers(instance, ctx, getBeanManager(), getInjectableFields(), getInitializerMethods());
             }
-
         }.run();
     }
 

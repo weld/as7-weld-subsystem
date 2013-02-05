@@ -46,6 +46,7 @@ import org.jboss.msc.service.StartException;
 import org.jboss.msc.service.StopContext;
 import org.jboss.msc.value.InjectedValue;
 import org.jboss.weld.bean.ManagedBean;
+import org.jboss.weld.bean.SessionBean;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.injection.producer.InjectionTargetService;
 import org.jboss.weld.literal.AnyLiteral;
@@ -138,6 +139,12 @@ public class WeldManagedReferenceFactory implements ManagedReferenceFactory, Ser
                 if (descriptor != null) {
                     bean = beanManager.getBean(descriptor);
                 }
+            }
+
+            if (bean instanceof SessionBean<?>) {
+                SessionBean<?> sessionBean = (SessionBean<?>) bean;
+                this.injectionTarget = sessionBean.getInjectionTarget();
+                return;
             }
 
             if (componentDescription instanceof WSComponentDescription) {
