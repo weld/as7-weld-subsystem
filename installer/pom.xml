@@ -51,7 +51,7 @@
                                     <outputDirectory>${project.build.directory}/dependency/lib</outputDirectory>
                                     <overWriteSnapshots>true</overWriteSnapshots>
                                     <stripVersion>true</stripVersion>
-                                    <includeArtifactIds>cdi-api,weld-api,weld-core,weld-spi,as7-weld-subsystem</includeArtifactIds>
+                                    <includeArtifactIds>cdi-api,weld-api,weld-core,weld-spi,as7-weld-subsystem,jboss-annotations-api_1.2_spec</includeArtifactIds>
                                 </configuration>
                             </execution>
                         </executions>
@@ -90,6 +90,16 @@
                                                 <include name="cdi-api.jar" />
                                             </fileset>
                                             <fileset dir="src/main/modules/javax/enterprise/api/main">
+                                                <include name="module.xml" />
+                                            </fileset>
+                                        </copy>
+
+                                        <!-- Common Annotations (@Priority) -->
+                                        <copy todir="${module.dir}/javax/annotation/api/main" overwrite="true">
+                                            <fileset dir="target/dependency/lib">
+                                                <include name="jboss-annotations-api_1.2_spec.jar" />
+                                            </fileset>
+                                            <fileset dir="src/main/modules/javax/annotation/api/main">
                                                 <include name="module.xml" />
                                             </fileset>
                                         </copy>
