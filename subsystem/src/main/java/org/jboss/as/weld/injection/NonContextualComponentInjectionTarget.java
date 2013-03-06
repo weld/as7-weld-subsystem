@@ -16,24 +16,15 @@
  */
 package org.jboss.as.weld.injection;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
-
-import javax.enterprise.context.spi.CreationalContext;
-import javax.enterprise.inject.spi.AnnotatedMethod;
 import javax.enterprise.inject.spi.Bean;
-import javax.enterprise.inject.spi.InjectionPoint;
 import javax.enterprise.inject.spi.InjectionTarget;
 
 import org.jboss.weld.annotated.enhanced.EnhancedAnnotatedType;
-import org.jboss.weld.injection.InjectionContextImpl;
-import org.jboss.weld.injection.producer.AbstractInjectionTarget;
-import org.jboss.weld.injection.producer.DefaultInstantiator;
-import org.jboss.weld.injection.producer.Instantiator;
+import org.jboss.weld.injection.producer.BasicInjectionTarget;
+import org.jboss.weld.injection.producer.LifecycleCallbackInvoker;
+import org.jboss.weld.injection.producer.NoopLifecycleCallbackInvoker;
 import org.jboss.weld.manager.BeanManagerImpl;
 import org.jboss.weld.resources.ClassTransformer;
-import org.jboss.weld.util.Beans;
 
 /**
  * {@link InjectionTarget} implementation used for non-contextual EE components
@@ -47,7 +38,7 @@ import org.jboss.weld.util.Beans;
  *
  * @param <T>
  */
-public class NonContextualComponentInjectionTarget<T> extends AbstractInjectionTarget<T> {
+public class NonContextualComponentInjectionTarget<T> extends BasicInjectionTarget<T> {
 
     @SuppressWarnings("unchecked")
     public NonContextualComponentInjectionTarget(Class<?> componentClass, Bean<T> bean, BeanManagerImpl beanManager) {
@@ -59,30 +50,7 @@ public class NonContextualComponentInjectionTarget<T> extends AbstractInjectionT
     }
 
     @Override
-    public void inject(final T instance, final CreationalContext<T> ctx) {
-        new InjectionContextImpl<T>(getBeanManager(), this, getType(), instance) {
-
-            public void proceed() {
-                Beans.injectFieldsAndInitializers(instance, ctx, getBeanManager(), getInjectableFields(), getInitializerMethods());
-            }
-        }.run();
-    }
-
-    @Override
-    protected Instantiator<T> initInstantiator(EnhancedAnnotatedType<T> type, Bean<T> bean, BeanManagerImpl beanManager,
-            Set<InjectionPoint> injectionPoints) {
-        return new DefaultInstantiator<T>(type, bean, beanManager);
-    }
-
-    @Override
-    protected List<AnnotatedMethod<? super T>> initPostConstructMethods(EnhancedAnnotatedType<T> type) {
-        // suppress lifecycle callback invocation - this is handled by AS
-        return Collections.emptyList();
-    }
-
-    @Override
-    protected List<AnnotatedMethod<? super T>> initPreDestroyMethods(EnhancedAnnotatedType<T> type) {
-        // suppress lifecycle callback invocation - this is handled by AS
-        return Collections.emptyList();
+    protected LifecycleCallbackInvoker<T> initInvoker(EnhancedAnnotatedType<T> type) {
+        return NoopLifecycleCallbackInvoker.getInstance();
     }
 }
