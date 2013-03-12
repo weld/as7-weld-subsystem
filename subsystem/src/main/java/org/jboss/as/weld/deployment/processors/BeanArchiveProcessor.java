@@ -40,11 +40,11 @@ import org.jboss.as.server.deployment.module.ResourceRoot;
 import org.jboss.as.server.deployment.reflect.DeploymentReflectionIndex;
 import org.jboss.as.weld.WeldDeploymentMarker;
 import org.jboss.as.weld.WeldLogger;
-import org.jboss.as.weld.deployment.BeanArchiveMetadata;
+import org.jboss.as.weld.deployment.ExplicitBeanArchiveMetadata;
 import org.jboss.as.weld.deployment.BeanDeploymentArchiveImpl;
 import org.jboss.as.weld.deployment.BeanDeploymentModule;
 import org.jboss.as.weld.deployment.WeldAttachments;
-import org.jboss.as.weld.deployment.WeldDeploymentMetadata;
+import org.jboss.as.weld.deployment.ExplicitBeanArchiveMetadataContainer;
 import org.jboss.as.weld.ejb.EjbDescriptorImpl;
 import org.jboss.as.weld.services.bootstrap.WeldJpaInjectionServices;
 import org.jboss.jandex.ClassInfo;
@@ -67,8 +67,8 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
     @Override
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
-        final WeldDeploymentMetadata cdiDeploymentMetadata = deploymentUnit
-                .getAttachment(WeldDeploymentMetadata.ATTACHMENT_KEY);
+        final ExplicitBeanArchiveMetadataContainer cdiDeploymentMetadata = deploymentUnit
+                .getAttachment(ExplicitBeanArchiveMetadataContainer.ATTACHMENT_KEY);
         final DeploymentReflectionIndex reflectionIndex = deploymentUnit.getAttachment(Attachments.REFLECTION_INDEX);
 
         if (!WeldDeploymentMarker.isPartOfWeldDeployment(deploymentUnit)) {
@@ -93,7 +93,7 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
         if (cdiDeploymentMetadata != null) {
             // this can be null for ear deployments
             // however we still want to create a module level bean manager
-            for (BeanArchiveMetadata beanArchiveMetadata : cdiDeploymentMetadata.getBeanArchiveMetadata()) {
+            for (ExplicitBeanArchiveMetadata beanArchiveMetadata : cdiDeploymentMetadata.getBeanArchiveMetadata().values()) {
                 boolean isRootBda = beanArchiveMetadata.isDeploymentRoot();
                 BeanDeploymentArchiveImpl bda = createBeanDeploymentArchive(indexes.get(beanArchiveMetadata.getResourceRoot()),
                         beanArchiveMetadata, module, beanArchiveIdPrefix, isRootBda);
@@ -156,7 +156,7 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
         return rootBda;
     }
 
-    private BeanDeploymentArchiveImpl createBeanDeploymentArchive(final Index index, BeanArchiveMetadata beanArchiveMetadata,
+    private BeanDeploymentArchiveImpl createBeanDeploymentArchive(final Index index, ExplicitBeanArchiveMetadata beanArchiveMetadata,
                                                                   Module module, String beanArchivePrefix, boolean root) throws DeploymentUnitProcessingException {
 
         Set<String> classNames = new HashSet<String>();

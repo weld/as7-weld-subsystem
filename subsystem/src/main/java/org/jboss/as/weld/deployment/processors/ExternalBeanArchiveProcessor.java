@@ -40,12 +40,12 @@ import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.weld.WeldDeploymentMarker;
 import org.jboss.as.weld.WeldLogger;
 import org.jboss.as.weld.deployment.AS7BeansXmlParser;
-import org.jboss.as.weld.deployment.BeanArchiveMetadata;
+import org.jboss.as.weld.deployment.ExplicitBeanArchiveMetadata;
 import org.jboss.as.weld.deployment.BeanDeploymentArchiveImpl;
 import org.jboss.as.weld.deployment.BeanDeploymentModule;
 import org.jboss.as.weld.deployment.UrlScanner;
 import org.jboss.as.weld.deployment.WeldAttachments;
-import org.jboss.as.weld.deployment.WeldDeploymentMetadata;
+import org.jboss.as.weld.deployment.ExplicitBeanArchiveMetadataContainer;
 import org.jboss.as.weld.services.bootstrap.WeldJpaInjectionServices;
 import org.jboss.modules.Module;
 import org.jboss.weld.bootstrap.spi.BeansXml;
@@ -92,9 +92,9 @@ public class ExternalBeanArchiveProcessor implements DeploymentUnitProcessor {
 
         for (DeploymentUnit deployment : deploymentUnits) {
             try {
-                final WeldDeploymentMetadata weldDeploymentMetadata = deployment.getAttachment(WeldDeploymentMetadata.ATTACHMENT_KEY);
+                final ExplicitBeanArchiveMetadataContainer weldDeploymentMetadata = deployment.getAttachment(ExplicitBeanArchiveMetadataContainer.ATTACHMENT_KEY);
                 if (weldDeploymentMetadata != null) {
-                    for (BeanArchiveMetadata md : weldDeploymentMetadata.getBeanArchiveMetadata()) {
+                    for (ExplicitBeanArchiveMetadata md : weldDeploymentMetadata.getBeanArchiveMetadata().values()) {
                         existing.add(md.getBeansXmlFile().toURL());
                         if (md.getAdditionalBeansXmlFile() != null) {
                             existing.add(md.getAdditionalBeansXmlFile().toURL());
