@@ -45,6 +45,13 @@ public class Indices {
 
     public static final Filter ANNOTATION_FILTER = new AnnotationFilter();
 
+    public static final Function<Class<?>, DotName> CLASS_TO_DOTNAME_FUNCTION = new Function<Class<?>, DotName>() {
+        @Override
+        public DotName apply(Class<?> input) {
+            return DotName.createSimple(input.getName());
+        }
+    };
+
     private Indices() {
     }
 

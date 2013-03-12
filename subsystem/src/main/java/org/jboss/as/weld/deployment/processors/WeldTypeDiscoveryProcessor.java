@@ -41,7 +41,6 @@ import org.jboss.weld.bootstrap.WeldBootstrap;
 import org.jboss.weld.bootstrap.api.TypeDiscoveryConfiguration;
 import org.jboss.weld.bootstrap.spi.Metadata;
 
-import com.google.common.base.Function;
 import com.google.common.collect.ImmutableSet;
 import com.google.common.collect.Lists;
 
@@ -83,7 +82,7 @@ public class WeldTypeDiscoveryProcessor implements DeploymentUnitProcessor {
     private Set<DotName> getBeanDefiningAnnotations(TypeDiscoveryConfiguration configuration, CompositeIndex index) {
         ImmutableSet.Builder<DotName> builder = ImmutableSet.builder();
         // scopes known to weld
-        builder.addAll(Lists.transform(new ArrayList<Class<?>>(configuration.getKnownBeanDefiningAnnotations()), new DotNameFunction()));
+        builder.addAll(Lists.transform(new ArrayList<Class<?>>(configuration.getKnownBeanDefiningAnnotations()), Indices.CLASS_TO_DOTNAME_FUNCTION));
         // found normal scopes (may overlap with scopes known to weld)
         builder.addAll(getAnnotationTargets(index.getAnnotations(NORMAL_SCOPE_DOTNAME)));
         // found pseudo scopes (may overlap with scopes known to weld)
@@ -99,13 +98,6 @@ public class WeldTypeDiscoveryProcessor implements DeploymentUnitProcessor {
             builder.addAll(getAnnotationTargets(index.getAnnotations(annotationName), Indices.ANNOTATION_FILTER));
         }
         return builder.build();
-    }
-
-    private static class DotNameFunction implements Function<Class<?>, DotName> {
-        @Override
-        public DotName apply(Class<?> input) {
-            return DotName.createSimple(input.getName());
-        }
     }
 
     @Override
