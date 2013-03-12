@@ -142,7 +142,7 @@ public class ExternalBeanArchiveProcessor implements DeploymentUnitProcessor {
                 continue;
             }
 
-            final BeanDeploymentArchiveImpl bda = new BeanDeploymentArchiveImpl(new HashSet<String>(discoveredClasses), beansXml, module, beanArchiveIdPrefix + entry.getKey().toExternalForm());
+            final BeanDeploymentArchiveImpl bda = new BeanDeploymentArchiveImpl(new HashSet<String>(discoveredClasses), Collections.<String>emptySet(), beansXml, module, beanArchiveIdPrefix + entry.getKey().toExternalForm());
 
             final BeanDeploymentModule bdm = new BeanDeploymentModule(Collections.singleton(bda));
             final JpaInjectionServices jpaInjectionServices = new WeldJpaInjectionServices(deploymentUnit, deploymentUnit.getServiceRegistry());

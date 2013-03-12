@@ -104,14 +104,14 @@ public class LegacyBeansXmlProcessor implements DeploymentUnitProcessor {
                 if (beansXmlPresent) {
                     // warn that it is not portable to use both locations at the same time
                     WeldLogger.DEPLOYMENT_LOGGER.duplicateBeansXml();
-                    beanArchiveMetadata.put(classesRoot, new ExplicitBeanArchiveMetadata(rootBeansXml, beansXml, classesRoot, parseBeansXml(rootBeansXml, parser, deploymentUnit), true));
+                    beanArchiveMetadata.put(deploymentRoot, new ExplicitBeanArchiveMetadata(rootBeansXml, beansXml, classesRoot, parseBeansXml(rootBeansXml, parser, deploymentUnit), true));
                 } else {
                     WeldLogger.DEPLOYMENT_LOGGER.debugf("Found beans.xml: %s", rootBeansXml);
                     beanArchiveMetadata.put(deploymentRoot, new ExplicitBeanArchiveMetadata(rootBeansXml, classesRoot, parseBeansXml(rootBeansXml, parser, deploymentUnit), true));
                 }
             } else if (beansXmlPresent) {
                 WeldLogger.DEPLOYMENT_LOGGER.debugf("Found beans.xml: %s", beansXml);
-                beanArchiveMetadata.put(classesRoot, new ExplicitBeanArchiveMetadata(beansXml, classesRoot, parseBeansXml(beansXml, parser, deploymentUnit), true));
+                beanArchiveMetadata.put(deploymentRoot, new ExplicitBeanArchiveMetadata(beansXml, classesRoot, parseBeansXml(beansXml, parser, deploymentUnit), true));
             }
         } else if (!DeploymentTypeMarker.isType(DeploymentType.EAR, deploymentUnit)) {
             final VirtualFile rootBeansXml = deploymentRoot.getRoot().getChild(META_INF_BEANS_XML);

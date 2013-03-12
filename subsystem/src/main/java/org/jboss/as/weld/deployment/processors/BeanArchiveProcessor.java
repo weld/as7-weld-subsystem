@@ -24,18 +24,23 @@ package org.jboss.as.weld.deployment.processors;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.jboss.as.ee.component.ComponentDescription;
 import org.jboss.as.ee.component.EEModuleDescription;
+import org.jboss.as.ee.structure.DeploymentType;
+import org.jboss.as.ee.structure.DeploymentTypeMarker;
 import org.jboss.as.ejb3.component.EJBComponentDescription;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
 import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
 import org.jboss.as.server.deployment.DeploymentUnitProcessor;
+import org.jboss.as.server.deployment.SubDeploymentMarker;
 import org.jboss.as.server.deployment.annotation.AnnotationIndexUtils;
+import org.jboss.as.server.deployment.module.ModuleRootMarker;
 import org.jboss.as.server.deployment.module.ResourceRoot;
 import org.jboss.as.server.deployment.reflect.DeploymentReflectionIndex;
 import org.jboss.as.weld.WeldDeploymentMarker;
@@ -51,6 +56,7 @@ import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.Index;
 import org.jboss.modules.Module;
+import org.jboss.weld.bootstrap.spi.BeanDiscoveryMode;
 import org.jboss.weld.bootstrap.spi.BeansXml;
 import org.jboss.weld.injection.spi.JpaInjectionServices;
 
@@ -67,13 +73,13 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
     @Override
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
-        final ExplicitBeanArchiveMetadataContainer cdiDeploymentMetadata = deploymentUnit
-                .getAttachment(ExplicitBeanArchiveMetadataContainer.ATTACHMENT_KEY);
-        final DeploymentReflectionIndex reflectionIndex = deploymentUnit.getAttachment(Attachments.REFLECTION_INDEX);
 
         if (!WeldDeploymentMarker.isPartOfWeldDeployment(deploymentUnit)) {
             return;
         }
+
+        final ExplicitBeanArchiveMetadataContainer cdiDeploymentMetadata = deploymentUnit.getAttachment(ExplicitBeanArchiveMetadataContainer.ATTACHMENT_KEY);
+        final DeploymentReflectionIndex reflectionIndex = deploymentUnit.getAttachment(Attachments.REFLECTION_INDEX);
 
         final String beanArchiveIdPrefix;
         if (deploymentUnit.getParent() == null) {
@@ -88,25 +94,46 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
         final Map<ResourceRoot, Index> indexes = AnnotationIndexUtils.getAnnotationIndexes(deploymentUnit);
         final Map<ResourceRoot, BeanDeploymentArchiveImpl> bdaMap = new HashMap<ResourceRoot, BeanDeploymentArchiveImpl>();
 
-        final Module module = phaseContext.getDeploymentUnit().getAttachment(Attachments.MODULE);
+        final Module module = deploymentUnit.getAttachment(Attachments.MODULE);
+
+        final WeldTypeDiscoveryConfiguration typeDiscoveryConfiguration = deploymentUnit.getAttachment(WeldAttachments.WELD_TYPE_DISCOVERY_CONFIGURATION);
+
         BeanDeploymentArchiveImpl rootBda = null;
-        if (cdiDeploymentMetadata != null) {
-            // this can be null for ear deployments
-            // however we still want to create a module level bean manager
-            for (ExplicitBeanArchiveMetadata beanArchiveMetadata : cdiDeploymentMetadata.getBeanArchiveMetadata().values()) {
-                boolean isRootBda = beanArchiveMetadata.isDeploymentRoot();
-                BeanDeploymentArchiveImpl bda = createBeanDeploymentArchive(indexes.get(beanArchiveMetadata.getResourceRoot()),
-                        beanArchiveMetadata, module, beanArchiveIdPrefix, isRootBda);
+
+        List<ResourceRoot> structure = deploymentUnit.getAttachmentList(Attachments.RESOURCE_ROOTS);
+        for (ResourceRoot resourceRoot : structure) {
+            if (ModuleRootMarker.isModuleRoot(resourceRoot) && !SubDeploymentMarker.isSubDeployment(resourceRoot)) {
+                if ("classes".equals(resourceRoot.getRootName())) {
+                    continue; // this is handled below
+                }
+                BeanDeploymentArchiveImpl bda = processResourceRoot(resourceRoot, cdiDeploymentMetadata, module, beanArchiveIdPrefix, indexes);
+                if (bda != null) {
+                    beanDeploymentArchives.add(bda);
+                    bdaMap.put(resourceRoot, bda);
+                    if (bda.isRoot()) {
+                        rootBda = bda;
+                        deploymentUnit.putAttachment(WeldAttachments.DEPLOYMENT_ROOT_BEAN_DEPLOYMENT_ARCHIVE, bda);
+                    }
+                }
+            }
+        }
+
+        // handle jar deployments
+        if (!DeploymentTypeMarker.isType(DeploymentType.EAR, deploymentUnit)) {
+            ResourceRoot resourceRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
+            BeanDeploymentArchiveImpl bda = processResourceRoot(resourceRoot, cdiDeploymentMetadata, module, beanArchiveIdPrefix, indexes);
+            if (bda != null) {
                 beanDeploymentArchives.add(bda);
-                bdaMap.put(beanArchiveMetadata.getResourceRoot(), bda);
-                if (isRootBda) {
+                bdaMap.put(resourceRoot, bda);
+                if (bda.isRoot()) {
                     rootBda = bda;
                     deploymentUnit.putAttachment(WeldAttachments.DEPLOYMENT_ROOT_BEAN_DEPLOYMENT_ARCHIVE, bda);
                 }
             }
         }
+
         if (rootBda == null) {
-            BeanDeploymentArchiveImpl bda = new BeanDeploymentArchiveImpl(Collections.<String>emptySet(),
+            BeanDeploymentArchiveImpl bda = new BeanDeploymentArchiveImpl(Collections.<String>emptySet(), Collections.<String>emptySet(),
                     BeansXml.EMPTY_BEANS_XML, module, beanArchiveIdPrefix, true);
             beanDeploymentArchives.add(bda);
             deploymentUnit.putAttachment(WeldAttachments.DEPLOYMENT_ROOT_BEAN_DEPLOYMENT_ARCHIVE, bda);
@@ -119,6 +146,23 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
         final BeanDeploymentModule bdm = new BeanDeploymentModule(beanDeploymentArchives);
         bdm.addService(JpaInjectionServices.class, jpaInjectionServices);
         deploymentUnit.putAttachment(WeldAttachments.BEAN_DEPLOYMENT_MODULE, bdm);
+    }
+
+    private BeanDeploymentArchiveImpl processResourceRoot(ResourceRoot resourceRoot, ExplicitBeanArchiveMetadataContainer explicitBeanArchives, Module module, String prefix, Map<ResourceRoot, Index> indexes) throws DeploymentUnitProcessingException {
+        ExplicitBeanArchiveMetadata metadata = null;
+        if (explicitBeanArchives != null) {
+            metadata = explicitBeanArchives.getBeanArchiveMetadata().get(resourceRoot);
+        }
+        if (metadata == null || metadata.getBeansXml().getBeanDiscoveryMode().equals(BeanDiscoveryMode.ANNOTATED)) {
+            // this is either an implicit bean archive or not a bean archive at all!
+            return null; // for now
+        } else if (metadata.getBeansXml().getBeanDiscoveryMode().equals(BeanDiscoveryMode.NONE)) {
+            // scanning suppressed in this archive
+            return null;
+        } else {
+            boolean isRootBda = metadata.isDeploymentRoot();
+            return createBeanDeploymentArchive(indexes.get(metadata.getResourceRoot()), metadata, module, prefix, isRootBda);
+        }
     }
 
     private void processEEComponents(DeploymentUnit deploymentUnit, Map<ResourceRoot, BeanDeploymentArchiveImpl> bdaMap, BeanDeploymentArchiveImpl rootBda, Map<ResourceRoot, Index> indexes, DeploymentReflectionIndex reflectionIndex) {
@@ -171,7 +215,7 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
         if (beanArchiveMetadata.getResourceRoot() != null) {
             beanArchiveId += beanArchiveMetadata.getResourceRoot().getRoot().getPathName();
         }
-        return new BeanDeploymentArchiveImpl(classNames, beanArchiveMetadata.getBeansXml(), module, beanArchiveId, root);
+        return new BeanDeploymentArchiveImpl(classNames, Collections.<String>emptySet(), beanArchiveMetadata.getBeansXml(), module, beanArchiveId, root);
     }
 
     @Override

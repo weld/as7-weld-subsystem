@@ -27,6 +27,7 @@ import org.jboss.weld.bootstrap.api.ServiceRegistry;
 import org.jboss.weld.bootstrap.api.helpers.SimpleServiceRegistry;
 import org.jboss.weld.bootstrap.spi.BeanDeploymentArchive;
 import org.jboss.weld.bootstrap.spi.BeansXml;
+import org.jboss.weld.bootstrap.spi.CDI11BeanDeploymentArchive;
 import org.jboss.weld.ejb.spi.EjbDescriptor;
 import org.jboss.weld.resources.spi.ResourceLoader;
 import org.jboss.weld.util.reflection.Reflections;
@@ -47,9 +48,11 @@ import java.util.concurrent.CopyOnWriteArraySet;
  * @author Stuart Douglas
  *
  */
-public class BeanDeploymentArchiveImpl implements BeanDeploymentArchive {
+public class BeanDeploymentArchiveImpl implements CDI11BeanDeploymentArchive {
 
     private final Set<String> beanClasses;
+
+    private final Set<String> additionalTypes;
 
     private final Set<BeanDeploymentArchive> beanDeploymentArchives;
 
@@ -67,12 +70,13 @@ public class BeanDeploymentArchiveImpl implements BeanDeploymentArchive {
 
     private final boolean root; // indicates whether this is a root BDA
 
-    public BeanDeploymentArchiveImpl(Set<String> beanClasses, BeansXml beansXml, Module module, String id) {
-        this(beanClasses, beansXml, module, id, false);
+    public BeanDeploymentArchiveImpl(Set<String> beanClasses, Set<String> additionalTypes, BeansXml beansXml, Module module, String id) {
+        this(beanClasses, additionalTypes, beansXml, module, id, false);
     }
 
-    public BeanDeploymentArchiveImpl(Set<String> beanClasses, BeansXml beansXml, Module module, String id, boolean root) {
+    public BeanDeploymentArchiveImpl(Set<String> beanClasses, Set<String> additionalTypes, BeansXml beansXml, Module module, String id, boolean root) {
         this.beanClasses = new ConcurrentSkipListSet<String>(beanClasses);
+        this.additionalTypes = additionalTypes;
         this.beanDeploymentArchives = new CopyOnWriteArraySet<BeanDeploymentArchive>();
         this.beansXml = beansXml;
         this.id = id;
@@ -199,5 +203,10 @@ public class BeanDeploymentArchiveImpl implements BeanDeploymentArchive {
     @Override
     public String toString() {
         return "BeanDeploymentArchiveImpl [id=" + id + "]";
+    }
+
+    @Override
+    public Collection<String> getAdditionalTypes() {
+        return additionalTypes;
     }
 }

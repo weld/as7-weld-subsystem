@@ -178,7 +178,7 @@ public class WeldDeployment implements Deployment {
             id = module.getIdentifier() + ADDITIONAL_CLASSES_BDA_SUFFIX;
         }
         BeanDeploymentArchiveImpl newBda = new BeanDeploymentArchiveImpl(Collections.singleton(beanClass.getName()),
-                BeansXml.EMPTY_BEANS_XML, module, id, false);
+                Collections.<String>emptySet(), BeansXml.EMPTY_BEANS_XML, module, id, false);
         newBda.addBeanClass(beanClass);
         newBda.getServices().addAll(serviceRegistry.entrySet());
         // handle BDAs visible from the new BDA
