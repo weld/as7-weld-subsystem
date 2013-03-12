@@ -81,6 +81,7 @@ import org.jboss.msc.service.ServiceBuilder;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceName;
 import org.jboss.msc.service.ServiceTarget;
+import org.jboss.weld.bootstrap.WeldBootstrap;
 import org.jboss.weld.bootstrap.api.Environments;
 import org.jboss.weld.bootstrap.spi.Metadata;
 import org.jboss.weld.ejb.spi.EjbServices;
@@ -224,7 +225,9 @@ public class WeldDeploymentProcessor implements DeploymentUnitProcessor {
 
         final WeldDeployment deployment = new WeldDeployment(beanDeploymentArchives, extensions, module, subDeploymentLoaders, deploymentUnit);
 
-        final WeldBootstrapService weldBootstrapService = new WeldBootstrapService(deployment, Environments.EE_INJECT, deploymentUnit.getName());
+        final WeldBootstrap bootstrap = deploymentUnit.getAttachment(WeldAttachments.WELD_BOOTSTRAP);
+
+        final WeldBootstrapService weldBootstrapService = new WeldBootstrapService(bootstrap, deployment, Environments.EE_INJECT, deploymentUnit.getName());
         //hook up validation service
         //TODO: we need to change weld so this is a per-BDA service
         final ValidatorFactory factory = deploymentUnit.getAttachment(BeanValidationAttachments.VALIDATOR_FACTORY);

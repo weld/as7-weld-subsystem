@@ -25,6 +25,11 @@ import javax.enterprise.inject.spi.Extension;
 
 import org.jboss.as.server.deployment.AttachmentKey;
 import org.jboss.as.server.deployment.AttachmentList;
+import org.jboss.as.weld.deployment.processors.WeldDependencyProcessor;
+import org.jboss.as.weld.deployment.processors.WeldTypeDiscoveryConfiguration;
+import org.jboss.as.weld.deployment.processors.WeldTypeDiscoveryProcessor;
+import org.jboss.weld.bootstrap.WeldBootstrap;
+import org.jboss.weld.bootstrap.api.CDI11Bootstrap;
 import org.jboss.weld.bootstrap.spi.Metadata;
 
 /**
@@ -61,4 +66,16 @@ public class WeldAttachments {
      * beans.xml files
      */
     public static final AttachmentKey<AttachmentList<Metadata<Extension>>> PORTABLE_EXTENSIONS = AttachmentKey.createList(Metadata.class);
+
+    /**
+     * Represents the result of the initial phase of Weld bootstrap ({@link CDI11Bootstrap#startExtensions(Iterable)})
+     */
+    public static final AttachmentKey<WeldTypeDiscoveryConfiguration> WELD_TYPE_DISCOVERY_CONFIGURATION = AttachmentKey.create(WeldTypeDiscoveryConfiguration.class);
+
+    /**
+     * {@link WeldBootstrap} needs to be instantiated by {@link WeldTypeDiscoveryProcessor} in order to create a
+     * {@link WeldTypeDiscoveryConfiguration} instance. Afterwards, the {@link WeldBootstrap} instance is propagated to
+     * {@link WeldDependencyProcessor} (where the rest of initialization is performed) as an attachment.
+     */
+    public static final AttachmentKey<WeldBootstrap> WELD_BOOTSTRAP = AttachmentKey.create(WeldBootstrap.class);
 }

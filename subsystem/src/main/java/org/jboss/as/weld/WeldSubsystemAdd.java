@@ -44,6 +44,7 @@ import org.jboss.as.weld.deployment.processors.WeldComponentIntegrationProcessor
 import org.jboss.as.weld.deployment.processors.WeldDependencyProcessor;
 import org.jboss.as.weld.deployment.processors.WeldDeploymentProcessor;
 import org.jboss.as.weld.deployment.processors.WeldPortableExtensionProcessor;
+import org.jboss.as.weld.deployment.processors.WeldTypeDiscoveryProcessor;
 import org.jboss.as.weld.services.TCCLSingletonService;
 import org.jboss.dmr.ModelNode;
 import org.jboss.msc.service.ServiceController;
@@ -99,6 +100,7 @@ class WeldSubsystemAdd extends AbstractBoottimeAddStepHandler {
             processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_BEAN_ARCHIVE, new BeanArchiveProcessor());
             processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, org.jboss.as.weld.compatibility.Phase.POST_MODULE_WELD_EXTERNAL_BEAN_ARCHIVE, new ExternalBeanArchiveProcessor());
             processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_PORTABLE_EXTENSIONS, new WeldPortableExtensionProcessor());
+            processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_PORTABLE_EXTENSIONS + 10, new WeldTypeDiscoveryProcessor()); // TODO: remove this relative priority and register in Phase
             processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_COMPONENT_INTEGRATION, new WeldComponentIntegrationProcessor());
             processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.INSTALL, Phase.INSTALL_WELD_DEPLOYMENT, new WeldDeploymentProcessor());
             processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.INSTALL, Phase.INSTALL_WELD_BEAN_MANAGER, new WeldBeanManagerServiceProcessor());

@@ -69,11 +69,11 @@ public class WeldBootstrapService implements Service<WeldBootstrapService> {
 
     private volatile boolean started;
 
-    public WeldBootstrapService(WeldDeployment deployment, Environment environment, final String deploymentName) {
+    public WeldBootstrapService(WeldBootstrap bootstrap, WeldDeployment deployment, Environment environment, final String deploymentName) {
         this.deployment = deployment;
         this.environment = environment;
         this.deploymentName = deploymentName;
-        this.bootstrap = new WeldBootstrap();
+        this.bootstrap = bootstrap;
         Map<String, BeanDeploymentArchive> bdas = new HashMap<String, BeanDeploymentArchive>();
         BeanDeploymentArchiveImpl rootBeanDeploymentArchive = null;
         for (BeanDeploymentArchive archive : deployment.getBeanDeploymentArchives()) {

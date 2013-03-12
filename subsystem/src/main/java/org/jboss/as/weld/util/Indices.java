@@ -16,7 +16,13 @@
  */
 package org.jboss.as.weld.util;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.jboss.jandex.AnnotationInstance;
+import org.jboss.jandex.AnnotationTarget;
 import org.jboss.jandex.ClassInfo;
+import org.jboss.jandex.DotName;
 
 import com.google.common.base.Function;
 
@@ -35,12 +41,43 @@ public class Indices {
         }
     };
 
+    private static final int ANNOTATION = 0x00002000;
+
+    public static final Filter ANNOTATION_FILTER = new AnnotationFilter();
+
     private Indices() {
     }
 
-    private static final int ANNOTATION = 0x00002000;
-
     public static boolean isAnnotation(ClassInfo clazz) {
         return (clazz.flags() & ANNOTATION) != 0;
+    }
+
+    public static List<DotName> getAnnotationTargets(List<AnnotationInstance> instances) {
+        return getAnnotationTargets(instances, null);
+    }
+
+    public static List<DotName> getAnnotationTargets(List<AnnotationInstance> instances, Filter filter) {
+        List<DotName> result = new ArrayList<DotName>();
+        for (AnnotationInstance instance : instances) {
+            AnnotationTarget target = instance.target();
+            if (target instanceof ClassInfo) {
+                ClassInfo clazz = (ClassInfo) target;
+                if (filter == null || filter.accepts(clazz)) {
+                    result.add(clazz.name());
+                }
+            }
+        }
+        return result;
+    }
+
+    public interface Filter {
+        boolean accepts(ClassInfo target);
+    }
+
+    private static class AnnotationFilter implements Filter {
+        @Override
+        public boolean accepts(ClassInfo target) {
+            return isAnnotation(target);
+        }
     }
 }
