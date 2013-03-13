@@ -45,13 +45,17 @@ import org.jboss.as.server.deployment.module.ResourceRoot;
 import org.jboss.as.server.deployment.reflect.DeploymentReflectionIndex;
 import org.jboss.as.weld.WeldDeploymentMarker;
 import org.jboss.as.weld.WeldLogger;
-import org.jboss.as.weld.deployment.ExplicitBeanArchiveMetadata;
 import org.jboss.as.weld.deployment.BeanDeploymentArchiveImpl;
 import org.jboss.as.weld.deployment.BeanDeploymentModule;
-import org.jboss.as.weld.deployment.WeldAttachments;
+import org.jboss.as.weld.deployment.ExplicitBeanArchiveMetadata;
 import org.jboss.as.weld.deployment.ExplicitBeanArchiveMetadataContainer;
+import org.jboss.as.weld.deployment.WeldAttachments;
+import org.jboss.as.weld.discovery.BeanDefiningAnnotationTargetDiscovery;
+import org.jboss.as.weld.discovery.RequiredAnnotationTargetDiscovery;
+import org.jboss.as.weld.discovery.WeldTypeDiscoveryConfiguration;
 import org.jboss.as.weld.ejb.EjbDescriptorImpl;
 import org.jboss.as.weld.services.bootstrap.WeldJpaInjectionServices;
+import org.jboss.as.weld.util.Indices;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.Index;
@@ -59,6 +63,8 @@ import org.jboss.modules.Module;
 import org.jboss.weld.bootstrap.spi.BeanDiscoveryMode;
 import org.jboss.weld.bootstrap.spi.BeansXml;
 import org.jboss.weld.injection.spi.JpaInjectionServices;
+
+import com.google.common.collect.Lists;
 
 /**
  * Deployment processor that builds bean archives and attaches them to the deployment
@@ -78,7 +84,7 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
             return;
         }
 
-        final ExplicitBeanArchiveMetadataContainer cdiDeploymentMetadata = deploymentUnit.getAttachment(ExplicitBeanArchiveMetadataContainer.ATTACHMENT_KEY);
+        final ResourceRootProcessor resourceRootProcessor = new ResourceRootProcessor(deploymentUnit);
         final DeploymentReflectionIndex reflectionIndex = deploymentUnit.getAttachment(Attachments.REFLECTION_INDEX);
 
         final String beanArchiveIdPrefix;
@@ -96,8 +102,6 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
 
         final Module module = deploymentUnit.getAttachment(Attachments.MODULE);
 
-        final WeldTypeDiscoveryConfiguration typeDiscoveryConfiguration = deploymentUnit.getAttachment(WeldAttachments.WELD_TYPE_DISCOVERY_CONFIGURATION);
-
         BeanDeploymentArchiveImpl rootBda = null;
 
         List<ResourceRoot> structure = deploymentUnit.getAttachmentList(Attachments.RESOURCE_ROOTS);
@@ -106,7 +110,7 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
                 if ("classes".equals(resourceRoot.getRootName())) {
                     continue; // this is handled below
                 }
-                BeanDeploymentArchiveImpl bda = processResourceRoot(resourceRoot, cdiDeploymentMetadata, module, beanArchiveIdPrefix, indexes);
+                BeanDeploymentArchiveImpl bda = resourceRootProcessor.processResourceRoot(resourceRoot);
                 if (bda != null) {
                     beanDeploymentArchives.add(bda);
                     bdaMap.put(resourceRoot, bda);
@@ -121,7 +125,7 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
         // handle jar deployments
         if (!DeploymentTypeMarker.isType(DeploymentType.EAR, deploymentUnit)) {
             ResourceRoot resourceRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
-            BeanDeploymentArchiveImpl bda = processResourceRoot(resourceRoot, cdiDeploymentMetadata, module, beanArchiveIdPrefix, indexes);
+            BeanDeploymentArchiveImpl bda = resourceRootProcessor.processResourceRoot(resourceRoot);
             if (bda != null) {
                 beanDeploymentArchives.add(bda);
                 bdaMap.put(resourceRoot, bda);
@@ -148,22 +152,6 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
         deploymentUnit.putAttachment(WeldAttachments.BEAN_DEPLOYMENT_MODULE, bdm);
     }
 
-    private BeanDeploymentArchiveImpl processResourceRoot(ResourceRoot resourceRoot, ExplicitBeanArchiveMetadataContainer explicitBeanArchives, Module module, String prefix, Map<ResourceRoot, Index> indexes) throws DeploymentUnitProcessingException {
-        ExplicitBeanArchiveMetadata metadata = null;
-        if (explicitBeanArchives != null) {
-            metadata = explicitBeanArchives.getBeanArchiveMetadata().get(resourceRoot);
-        }
-        if (metadata == null || metadata.getBeansXml().getBeanDiscoveryMode().equals(BeanDiscoveryMode.ANNOTATED)) {
-            // this is either an implicit bean archive or not a bean archive at all!
-            return null; // for now
-        } else if (metadata.getBeansXml().getBeanDiscoveryMode().equals(BeanDiscoveryMode.NONE)) {
-            // scanning suppressed in this archive
-            return null;
-        } else {
-            boolean isRootBda = metadata.isDeploymentRoot();
-            return createBeanDeploymentArchive(indexes.get(metadata.getResourceRoot()), metadata, module, prefix, isRootBda);
-        }
-    }
 
     private void processEEComponents(DeploymentUnit deploymentUnit, Map<ResourceRoot, BeanDeploymentArchiveImpl> bdaMap, BeanDeploymentArchiveImpl rootBda, Map<ResourceRoot, Index> indexes, DeploymentReflectionIndex reflectionIndex) {
         final EEModuleDescription moduleDescription = deploymentUnit.getAttachment(org.jboss.as.ee.component.Attachments.EE_MODULE_DESCRIPTION);
@@ -200,27 +188,88 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
         return rootBda;
     }
 
-    private BeanDeploymentArchiveImpl createBeanDeploymentArchive(final Index index, ExplicitBeanArchiveMetadata beanArchiveMetadata,
-                                                                  Module module, String beanArchivePrefix, boolean root) throws DeploymentUnitProcessingException {
+    @Override
+    public void undeploy(DeploymentUnit context) {
+    }
 
-        Set<String> classNames = new HashSet<String>();
-        // index may be null if a war has a beans.xml but no WEB-INF/classes
-        if (index != null) {
-            for (ClassInfo classInfo : index.getKnownClasses()) {
-                classNames.add(classInfo.name().toString());
+    private static class ResourceRootProcessor {
+        private final ExplicitBeanArchiveMetadataContainer explicitBeanArchives;
+        private final Module module;
+        private final String prefix;
+        private final Map<ResourceRoot, Index> indexes;
+        private final WeldTypeDiscoveryConfiguration discoveryConfiguration;
+
+        private ResourceRootProcessor(DeploymentUnit deploymentUnit) {
+            this.explicitBeanArchives = deploymentUnit.getAttachment(ExplicitBeanArchiveMetadataContainer.ATTACHMENT_KEY);
+            this.module = deploymentUnit.getAttachment(Attachments.MODULE);
+            String prefix = deploymentUnit.getName();
+            if (deploymentUnit.getParent() != null) {
+                prefix = deploymentUnit.getParent().getName() + "." + prefix;
+            }
+            this.prefix = prefix;
+            this.indexes = AnnotationIndexUtils.getAnnotationIndexes(deploymentUnit);
+            this.discoveryConfiguration = deploymentUnit.getAttachment(WeldAttachments.WELD_TYPE_DISCOVERY_CONFIGURATION);
+        }
+
+        private BeanDeploymentArchiveImpl processResourceRoot(ResourceRoot resourceRoot) throws DeploymentUnitProcessingException {
+            ExplicitBeanArchiveMetadata metadata = null;
+            if (explicitBeanArchives != null) {
+                metadata = explicitBeanArchives.getBeanArchiveMetadata().get(resourceRoot);
+            }
+            if (metadata == null || metadata.getBeansXml().getBeanDiscoveryMode().equals(BeanDiscoveryMode.ANNOTATED)) {
+                // this is either an implicit bean archive or not a bean archive at all!
+                Index index = indexes.get(resourceRoot);
+                if (index == null) {
+                    return null; // index may be null for some resource roots
+                }
+
+                Set<String> beans = getImplicitBeanClasses(index);
+                Set<String> additionalTypes = getAdditionalTypes(index, beans);
+
+                if (beans.isEmpty() && additionalTypes.isEmpty()) {
+                    return null;
+                }
+                // TODO: EJBs in an archive should cause implicit BDA!
+                // TODO: provide beans.xml if found  ------------------------>
+                return new BeanDeploymentArchiveImpl(beans, additionalTypes, null, module, prefix + resourceRoot.getRoot().getPathName());
+            } else if (metadata.getBeansXml().getBeanDiscoveryMode().equals(BeanDiscoveryMode.NONE)) {
+                // scanning suppressed per spec in this archive
+                return null;
+            } else {
+                boolean isRootBda = metadata.isDeploymentRoot();
+                return createBeanDeploymentArchive(indexes.get(metadata.getResourceRoot()), metadata, isRootBda);
             }
         }
 
-        String beanArchiveId = beanArchivePrefix;
-        if (beanArchiveMetadata.getResourceRoot() != null) {
-            beanArchiveId += beanArchiveMetadata.getResourceRoot().getRoot().getPathName();
+        private Set<String> getImplicitBeanClasses(Index index) {
+            RequiredAnnotationTargetDiscovery discovery = new BeanDefiningAnnotationTargetDiscovery(index);
+            List<ClassInfo> classes = discovery.getAffectedClasses(discoveryConfiguration.getBeanDefiningAnnotations());
+            return new HashSet<String>(Lists.transform(classes, Indices.CLASSINFO_TO_STRING_FUNCTION));
         }
-        return new BeanDeploymentArchiveImpl(classNames, Collections.<String>emptySet(), beanArchiveMetadata.getBeansXml(), module, beanArchiveId, root);
+
+        private Set<String> getAdditionalTypes(Index index, Set<String> beanClasses) {
+            RequiredAnnotationTargetDiscovery discovery = new RequiredAnnotationTargetDiscovery(index);
+            List<ClassInfo> classes = discovery.getAffectedClasses(discoveryConfiguration.getRequiredAnnotations());
+            Set<String> types = new HashSet<String>(Lists.transform(classes, Indices.CLASSINFO_TO_STRING_FUNCTION));
+            types.removeAll(beanClasses);
+            return types;
+        }
+
+        private BeanDeploymentArchiveImpl createBeanDeploymentArchive(final Index index, ExplicitBeanArchiveMetadata beanArchiveMetadata, boolean root) throws DeploymentUnitProcessingException {
+
+            Set<String> classNames = new HashSet<String>();
+            // index may be null if a war has a beans.xml but no WEB-INF/classes
+            if (index != null) {
+                for (ClassInfo classInfo : index.getKnownClasses()) {
+                    classNames.add(classInfo.name().toString());
+                }
+            }
+
+            String beanArchiveId = prefix;
+            if (beanArchiveMetadata.getResourceRoot() != null) {
+                beanArchiveId += beanArchiveMetadata.getResourceRoot().getRoot().getPathName();
+            }
+            return new BeanDeploymentArchiveImpl(classNames, Collections.<String> emptySet(), beanArchiveMetadata.getBeansXml(), module, beanArchiveId, root);
+        }
     }
-
-    @Override
-    public void undeploy(DeploymentUnit context) {
-
-    }
-
 }

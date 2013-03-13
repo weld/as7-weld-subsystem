@@ -17,7 +17,6 @@
 package org.jboss.as.weld.discovery;
 
 import java.lang.annotation.Annotation;
-import java.lang.annotation.Inherited;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
@@ -46,14 +45,12 @@ import com.google.common.collect.ImmutableSet;
  */
 public class WeldAnnotationDiscovery implements ExtendedAnnotationDiscovery, BootstrapService {
 
-    private static final DotName INHERITED_NAME = DotName.createSimple(Inherited.class.getName());
-
     private class LoadAffectedClassNames extends CacheLoader<Class<? extends Annotation>, Set<String>> {
         @Override
         public Set<String> load(Class<? extends Annotation> key) throws Exception {
             // we enumerate a set of all the annotations annotated by the given meta-annotation plus the given annotation itself
             Set<AnnotationType> firstLevelAnnotations = new HashSet<AnnotationType>(annotatedAnnotations.get(key));
-            firstLevelAnnotations.add(new AnnotationType(DotName.createSimple(key.getName()), key.isAnnotationPresent(Inherited.class)));
+            firstLevelAnnotations.add(AnnotationType.FOR_CLASS.apply(key));
 
             Collection<ClassInfo> affectedClasses = helper.getAffectedClasses(firstLevelAnnotations);
             return ImmutableSet.copyOf(Collections2.transform(affectedClasses, Indices.CLASS_INFO_TO_FQCN));
@@ -69,7 +66,7 @@ public class WeldAnnotationDiscovery implements ExtendedAnnotationDiscovery, Boo
                 if (target instanceof ClassInfo) {
                     ClassInfo clazz = (ClassInfo) target;
                     if (Indices.isAnnotation(clazz)) {
-                        builder.add(new AnnotationType(clazz.name(), clazz.annotations().containsKey(INHERITED_NAME)));
+                        builder.add(AnnotationType.FOR_CLASSINFO.apply(clazz));
                     }
                 }
             }
@@ -86,7 +83,7 @@ public class WeldAnnotationDiscovery implements ExtendedAnnotationDiscovery, Boo
 
     public WeldAnnotationDiscovery(CompositeIndex index) {
         this.index = index;
-        this.helper = new RequiredAnnotationTargetDiscovery(IndexAdapter.forCompositeIndex(index));
+        this.helper = new RequiredAnnotationTargetDiscovery(index);
     }
 
     @Override

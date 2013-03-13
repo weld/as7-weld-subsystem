@@ -35,6 +35,8 @@ import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.annotation.CompositeIndex;
 import org.jboss.as.weld.WeldDeploymentMarker;
 import org.jboss.as.weld.deployment.WeldAttachments;
+import org.jboss.as.weld.discovery.AnnotationType;
+import org.jboss.as.weld.discovery.WeldTypeDiscoveryConfiguration;
 import org.jboss.as.weld.util.Indices;
 import org.jboss.jandex.DotName;
 import org.jboss.weld.bootstrap.WeldBootstrap;
@@ -70,8 +72,8 @@ public class WeldTypeDiscoveryProcessor implements DeploymentUnitProcessor {
 
         final CompositeIndex index = deploymentUnit.getAttachment(Attachments.COMPOSITE_ANNOTATION_INDEX);
 
-        Set<DotName> beanDefiningAnnotations = getBeanDefiningAnnotations(configuration, index);
-        Set<DotName> requiredAnnotations = flattenRequiredAnnotations(configuration, index);
+        Set<AnnotationType> beanDefiningAnnotations = getBeanDefiningAnnotations(configuration, index);
+        Set<AnnotationType> requiredAnnotations = flattenRequiredAnnotations(configuration, index);
 
         WeldTypeDiscoveryConfiguration discoveryConfiguration = new WeldTypeDiscoveryConfiguration(beanDefiningAnnotations, requiredAnnotations);
 
@@ -79,23 +81,23 @@ public class WeldTypeDiscoveryProcessor implements DeploymentUnitProcessor {
         deploymentUnit.putAttachment(WeldAttachments.WELD_TYPE_DISCOVERY_CONFIGURATION, discoveryConfiguration);
     }
 
-    private Set<DotName> getBeanDefiningAnnotations(TypeDiscoveryConfiguration configuration, CompositeIndex index) {
-        ImmutableSet.Builder<DotName> builder = ImmutableSet.builder();
+    private Set<AnnotationType> getBeanDefiningAnnotations(TypeDiscoveryConfiguration configuration, CompositeIndex index) {
+        ImmutableSet.Builder<AnnotationType> builder = ImmutableSet.builder();
         // scopes known to weld
-        builder.addAll(Lists.transform(new ArrayList<Class<?>>(configuration.getKnownBeanDefiningAnnotations()), Indices.CLASS_TO_DOTNAME_FUNCTION));
+        builder.addAll(Lists.transform(new ArrayList<Class<? extends Annotation>>(configuration.getKnownBeanDefiningAnnotations()), AnnotationType.FOR_CLASS));
         // found normal scopes (may overlap with scopes known to weld)
-        builder.addAll(getAnnotationTargets(index.getAnnotations(NORMAL_SCOPE_DOTNAME)));
+        builder.addAll(Lists.transform(getAnnotationTargets(index.getAnnotations(NORMAL_SCOPE_DOTNAME)), AnnotationType.FOR_CLASSINFO));
         // found pseudo scopes (may overlap with scopes known to weld)
-        builder.addAll(getAnnotationTargets(index.getAnnotations(SCOPE_DOTNAME)));
+        builder.addAll(Lists.transform(getAnnotationTargets(index.getAnnotations(SCOPE_DOTNAME)), AnnotationType.FOR_CLASSINFO));
         return builder.build();
     }
 
-    private Set<DotName> flattenRequiredAnnotations(TypeDiscoveryConfiguration configuration, CompositeIndex index) {
-        ImmutableSet.Builder<DotName> builder = ImmutableSet.builder();
+    private Set<AnnotationType> flattenRequiredAnnotations(TypeDiscoveryConfiguration configuration, CompositeIndex index) {
+        ImmutableSet.Builder<AnnotationType> builder = ImmutableSet.builder();
         for (Class<? extends Annotation> requiredAnnotation : configuration.getAdditionalTypeMarkerAnnotations()) {
-            DotName annotationName = DotName.createSimple(requiredAnnotation.getName());
-            builder.add(annotationName);
-            builder.addAll(getAnnotationTargets(index.getAnnotations(annotationName), Indices.ANNOTATION_FILTER));
+            AnnotationType annotation = AnnotationType.FOR_CLASS.apply(requiredAnnotation);
+            builder.add(annotation);
+            builder.addAll(Lists.transform(getAnnotationTargets(index.getAnnotations(annotation.getName()), Indices.ANNOTATION_FILTER), AnnotationType.FOR_CLASSINFO));
         }
         return builder.build();
     }

@@ -74,7 +74,7 @@ public class UrlScanner {
             return true;
         } else if ("vfs".equals(urlType)) {
             try {
-                VirtualFile vfsRoot = VFS.getChild(url).getParent().getParent();
+                VirtualFile vfsRoot = VFS.getChild(url.toURI()).getParent().getParent();
                 handle(vfsRoot, discoveredClasses);
                 return true;
             } catch (URISyntaxException e) {

@@ -17,12 +17,16 @@
 package org.jboss.as.weld.discovery;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
+import org.jboss.as.server.deployment.annotation.CompositeIndex;
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
 import org.jboss.jandex.ClassInfo;
+import org.jboss.jandex.DotName;
 import org.jboss.jandex.FieldInfo;
+import org.jboss.jandex.Index;
 import org.jboss.jandex.MethodInfo;
 import org.jboss.jandex.MethodParameterInfo;
 
@@ -32,8 +36,12 @@ public class RequiredAnnotationTargetDiscovery {
 
     private final IndexAdapter index;
 
-    public RequiredAnnotationTargetDiscovery(IndexAdapter index) {
-        this.index = index;
+    public RequiredAnnotationTargetDiscovery(Index index) {
+        this.index = IndexAdapter.forIndex(index);
+    }
+
+    public RequiredAnnotationTargetDiscovery(CompositeIndex index) {
+        this.index = IndexAdapter.forCompositeIndex(index);
     }
 
     /**
@@ -100,5 +108,41 @@ public class RequiredAnnotationTargetDiscovery {
     protected void processParameter(List<ClassInfo> classes, MethodParameterInfo parameter) {
         classes.add(parameter.method().declaringClass());
         processSubclasses(classes, parameter.method().declaringClass());
+    }
+
+    protected static abstract class IndexAdapter {
+
+        public static IndexAdapter forIndex(final Index index) {
+            return new IndexAdapter() {
+                @Override
+                public Collection<ClassInfo> getKnownDirectSubclasses(DotName className) {
+                    return index.getKnownDirectSubclasses(className);
+                }
+
+                @Override
+                public List<AnnotationInstance> getAnnotations(DotName annotationName) {
+                    return index.getAnnotations(annotationName);
+                }
+            };
+        }
+
+        public static IndexAdapter forCompositeIndex(final CompositeIndex index) {
+            return new IndexAdapter() {
+
+                @Override
+                public Collection<ClassInfo> getKnownDirectSubclasses(DotName className) {
+                    return index.getKnownDirectSubclasses(className);
+                }
+
+                @Override
+                public List<AnnotationInstance> getAnnotations(DotName annotationName) {
+                    return index.getAnnotations(annotationName);
+                }
+            };
+        }
+
+        public abstract List<AnnotationInstance> getAnnotations(DotName annotationName);
+
+        public abstract Collection<ClassInfo> getKnownDirectSubclasses(DotName className);
     }
 }

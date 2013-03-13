@@ -14,11 +14,10 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.jboss.as.weld.deployment.processors;
+package org.jboss.as.weld.discovery;
 
 import java.util.Set;
 
-import org.jboss.jandex.DotName;
 import org.jboss.weld.bootstrap.api.CDI11Bootstrap;
 
 /**
@@ -29,10 +28,10 @@ import org.jboss.weld.bootstrap.api.CDI11Bootstrap;
  */
 public class WeldTypeDiscoveryConfiguration {
 
-    private final Set<DotName> beanDefiningAnnotations;
-    private final Set<DotName> requiredAnnotations;
+    private final Set<AnnotationType> beanDefiningAnnotations;
+    private final Set<AnnotationType> requiredAnnotations;
 
-    protected WeldTypeDiscoveryConfiguration(Set<DotName> beanDefiningAnnotations, Set<DotName> requiredAnnotations) {
+    public WeldTypeDiscoveryConfiguration(Set<AnnotationType> beanDefiningAnnotations, Set<AnnotationType> requiredAnnotations) {
         this.beanDefiningAnnotations = beanDefiningAnnotations;
         this.requiredAnnotations = requiredAnnotations;
     }
@@ -40,14 +39,14 @@ public class WeldTypeDiscoveryConfiguration {
     /**
      * @return bean defining annotations recognized by Weld combined with bean defining annotations recognized by scanning
      */
-    public Set<DotName> getBeanDefiningAnnotations() {
+    public Set<AnnotationType> getBeanDefiningAnnotations() {
         return beanDefiningAnnotations;
     }
 
     /**
      * @return a set containing required annotations and application annotations annotated with required annotations
      */
-    public Set<DotName> getRequiredAnnotations() {
+    public Set<AnnotationType> getRequiredAnnotations() {
         return requiredAnnotations;
     }
 
