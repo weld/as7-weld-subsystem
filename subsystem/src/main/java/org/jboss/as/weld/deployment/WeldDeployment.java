@@ -31,8 +31,12 @@ import java.util.Set;
 
 import javax.enterprise.inject.spi.Extension;
 
+import org.jboss.as.server.deployment.Attachments;
+import org.jboss.as.server.deployment.DeploymentUnit;
+import org.jboss.as.server.deployment.annotation.CompositeIndex;
 import org.jboss.as.weld.WeldModuleResourceLoader;
 import org.jboss.as.weld.deployment.processors.WeldDeploymentProcessor;
+import org.jboss.as.weld.discovery.WeldAnnotationDiscovery;
 import org.jboss.as.weld.services.bootstrap.ProxyServicesImpl;
 import org.jboss.modules.Module;
 import org.jboss.weld.bootstrap.api.Service;
@@ -42,6 +46,7 @@ import org.jboss.weld.bootstrap.spi.BeanDeploymentArchive;
 import org.jboss.weld.bootstrap.spi.BeansXml;
 import org.jboss.weld.bootstrap.spi.Deployment;
 import org.jboss.weld.bootstrap.spi.Metadata;
+import org.jboss.weld.resources.spi.AnnotationDiscovery;
 import org.jboss.weld.resources.spi.ResourceLoader;
 import org.jboss.weld.serialization.spi.ProxyServices;
 
@@ -84,7 +89,7 @@ public class WeldDeployment implements Deployment {
     private final Map<ClassLoader, BeanDeploymentArchiveImpl> additionalBeanDeploymentArchivesByClassloader;
 
     public WeldDeployment(Set<BeanDeploymentArchiveImpl> beanDeploymentArchives, Collection<Metadata<Extension>> extensions,
-            Module module, Set<ClassLoader> subDeploymentClassLoaders) {
+            Module module, Set<ClassLoader> subDeploymentClassLoaders, DeploymentUnit deploymentUnit) {
         this.subDeploymentClassLoaders = new HashSet<ClassLoader>(subDeploymentClassLoaders);
         this.beanDeploymentArchives = new HashSet<BeanDeploymentArchiveImpl>(beanDeploymentArchives);
         this.extensions = new HashSet<Metadata<Extension>>(extensions);
@@ -96,6 +101,11 @@ public class WeldDeployment implements Deployment {
         // add static services
         this.serviceRegistry.add(ProxyServices.class, new ProxyServicesImpl(module));
         this.serviceRegistry.add(ResourceLoader.class, new WeldModuleResourceLoader(module));
+
+        CompositeIndex index = deploymentUnit.getAttachment(Attachments.COMPOSITE_ANNOTATION_INDEX);
+        if (index != null) {
+            this.serviceRegistry.add(AnnotationDiscovery.class, new WeldAnnotationDiscovery(index));
+        }
 
         // set up the additional bean archives accessibility rules
         // and map class names to bean deployment archives
