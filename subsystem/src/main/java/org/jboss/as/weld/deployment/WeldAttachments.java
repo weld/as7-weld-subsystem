@@ -25,6 +25,7 @@ import javax.enterprise.inject.spi.Extension;
 
 import org.jboss.as.server.deployment.AttachmentKey;
 import org.jboss.as.server.deployment.AttachmentList;
+import org.jboss.as.server.deployment.module.ResourceRoot;
 import org.jboss.as.weld.deployment.processors.WeldDependencyProcessor;
 import org.jboss.as.weld.deployment.processors.WeldTypeDiscoveryProcessor;
 import org.jboss.as.weld.discovery.WeldTypeDiscoveryConfiguration;
@@ -78,4 +79,9 @@ public class WeldAttachments {
      * {@link WeldDependencyProcessor} (where the rest of initialization is performed) as an attachment.
      */
     public static final AttachmentKey<WeldBootstrap> WELD_BOOTSTRAP = AttachmentKey.create(WeldBootstrap.class);
+
+    /**
+     * The {@link ResourceRoot} for WEB-INF/classes of a web archive.
+     */
+    public static final AttachmentKey<ResourceRoot> CLASSES_RESOURCE_ROOT = AttachmentKey.create(ResourceRoot.class);
 }

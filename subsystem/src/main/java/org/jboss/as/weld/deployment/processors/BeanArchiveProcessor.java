@@ -21,7 +21,8 @@
  */
 package org.jboss.as.weld.deployment.processors;
 
-import java.util.ArrayList;
+import static org.jboss.as.weld.util.ResourceRoots.isClassesRoot;
+
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
@@ -58,6 +59,7 @@ import org.jboss.as.weld.discovery.WeldTypeDiscoveryConfiguration;
 import org.jboss.as.weld.ejb.EjbDescriptorImpl;
 import org.jboss.as.weld.services.bootstrap.WeldJpaInjectionServices;
 import org.jboss.as.weld.util.Indices;
+import org.jboss.as.weld.util.ResourceRoots;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.Index;
@@ -109,48 +111,28 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
         final Multimap<ResourceRoot, ComponentDescription> componentDescriptions = HashMultimap.create();
         final Multimap<ResourceRoot, EJBComponentDescription> ejbComponentDescriptions = HashMultimap.create();
 
-        new ResourceRootTraversal(deploymentUnit) {
-
-            List<ResourceRoot> resourceRoots = new ArrayList<ResourceRoot>();
-
-            @Override
-            protected void processResourceRoot(ResourceRoot resourceRoot) {
-                resourceRoots.add(resourceRoot);
-            }
-
-            @Override
-            protected void processDeploymentResourceRoot(ResourceRoot resourceRoot) {
-                resourceRoots.add(resourceRoot);
-            }
-
-            @Override
-            protected void finished() {
-                for (ComponentDescription component : deploymentUnit.getAttachment(org.jboss.as.ee.component.Attachments.EE_MODULE_DESCRIPTION).getComponentDescriptions()) {
-                    ResourceRoot resourceRoot = resolveResourceRoot(component.getComponentClassName());
-                    if (resourceRoot != null && resourceRoot.getRootName().equals("classes")) {
-                        // TODO: handle this systematically
-                        resourceRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
-                    }
-                    componentDescriptions.put(resourceRoot, component);
-                    if (component instanceof EJBComponentDescription) {
-                        ejbComponentDescriptions.put(resourceRoot, (EJBComponentDescription) component);
+        for (ComponentDescription component : deploymentUnit.getAttachment(org.jboss.as.ee.component.Attachments.EE_MODULE_DESCRIPTION).getComponentDescriptions()) {
+            ResourceRoot resourceRoot = null;
+            DotName componentClassName = DotName.createSimple(component.getComponentClassName());
+            for (Entry<ResourceRoot, Index> entry : indexes.entrySet()) {
+                final Index index = entry.getValue();
+                if (index != null) {
+                    if (index.getClassByName(componentClassName) != null) {
+                        resourceRoot = entry.getKey();
+                        break;
                     }
                 }
             }
-
-            private ResourceRoot resolveResourceRoot(String ejbClassName) {
-                final DotName className = DotName.createSimple(ejbClassName);
-                for (Entry<ResourceRoot, Index> entry : indexes.entrySet()) {
-                    final Index index = entry.getValue();
-                    if (index != null) {
-                        if (index.getClassByName(className) != null) {
-                            return entry.getKey();
-                        }
-                    }
-                }
-                return deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
+            if (resourceRoot == null || isClassesRoot(resourceRoot)) {
+                // special handling
+                resourceRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
             }
-        }.run();
+
+            componentDescriptions.put(resourceRoot, component);
+            if (component instanceof EJBComponentDescription) {
+                ejbComponentDescriptions.put(resourceRoot, (EJBComponentDescription) component);
+            }
+        }
 
         /*
          * Process resource roots and create bean archives
@@ -163,7 +145,7 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
 
             @Override
             protected void processResourceRoot(ResourceRoot resourceRoot) throws DeploymentUnitProcessingException {
-                if ("classes".equals(resourceRoot.getRootName())) {
+                if (isClassesRoot(resourceRoot)) {
                     return; // this is handled below
                 }
                 BeanDeploymentArchiveImpl bda = resourceRootHandler.processResourceRoot(resourceRoot);
@@ -228,7 +210,7 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
     public void undeploy(DeploymentUnit context) {
     }
 
-    private static class ResourceRootHandler {
+    private class ResourceRootHandler {
         private final ExplicitBeanArchiveMetadataContainer explicitBeanArchives;
         private final Module module;
         private final String prefix;
@@ -236,6 +218,8 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
         private final WeldTypeDiscoveryConfiguration discoveryConfiguration;
         private final Multimap<ResourceRoot, EJBComponentDescription> ejbComponentDescriptions;
         private final DeploymentReflectionIndex reflectionIndex;
+        private final ResourceRoot deploymentResourceRoot;
+        private final ResourceRoot classesResourceRoot;
 
         private ResourceRootHandler(DeploymentUnit deploymentUnit, Multimap<ResourceRoot, EJBComponentDescription> ejbComponentDescriptions) {
             this.explicitBeanArchives = deploymentUnit.getAttachment(ExplicitBeanArchiveMetadataContainer.ATTACHMENT_KEY);
@@ -249,6 +233,8 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
             this.discoveryConfiguration = deploymentUnit.getAttachment(WeldAttachments.WELD_TYPE_DISCOVERY_CONFIGURATION);
             this.ejbComponentDescriptions = ejbComponentDescriptions;
             this.reflectionIndex = deploymentUnit.getAttachment(Attachments.REFLECTION_INDEX);
+            this.deploymentResourceRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
+            this.classesResourceRoot = deploymentUnit.getAttachment(WeldAttachments.CLASSES_RESOURCE_ROOT);
         }
 
         private BeanDeploymentArchiveImpl processResourceRoot(ResourceRoot resourceRoot) throws DeploymentUnitProcessingException {
@@ -259,7 +245,13 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
             BeanDeploymentArchiveImpl bda = null;
             if (metadata == null || metadata.getBeansXml().getBeanDiscoveryMode().equals(BeanDiscoveryMode.ANNOTATED)) {
                 // this is either an implicit bean archive or not a bean archive at all!
-                Index index = indexes.get(resourceRoot);
+
+                Index index = null;
+                if (resourceRoot == deploymentResourceRoot && classesResourceRoot != null) {
+                    index = indexes.get(classesResourceRoot);
+                } else {
+                    index = indexes.get(resourceRoot);
+                }
                 if (index == null) {
                     return null; // index may be null for some resource roots
                 }

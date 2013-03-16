@@ -42,6 +42,8 @@ import org.jboss.as.weld.WeldMessages;
 import org.jboss.as.weld.deployment.AS7BeansXmlParser;
 import org.jboss.as.weld.deployment.ExplicitBeanArchiveMetadata;
 import org.jboss.as.weld.deployment.ExplicitBeanArchiveMetadataContainer;
+import org.jboss.as.weld.deployment.WeldAttachments;
+import org.jboss.as.weld.util.ResourceRoots;
 import org.jboss.metadata.property.PropertyReplacer;
 import org.jboss.vfs.VirtualFile;
 import org.jboss.weld.bootstrap.spi.BeansXml;
@@ -75,9 +77,10 @@ public class LegacyBeansXmlProcessor implements DeploymentUnitProcessor {
         List<ResourceRoot> structure = deploymentUnit.getAttachmentList(Attachments.RESOURCE_ROOTS);
         for (ResourceRoot resourceRoot : structure) {
             if (ModuleRootMarker.isModuleRoot(resourceRoot) && !SubDeploymentMarker.isSubDeployment(resourceRoot)) {
-                if (resourceRoot.getRootName().equals("classes")) {
+                if (ResourceRoots.isClassesRoot(resourceRoot)) {
                     // hack for dealing with war modules
                     classesRoot = resourceRoot;
+                    deploymentUnit.putAttachment(WeldAttachments.CLASSES_RESOURCE_ROOT, resourceRoot);
                 } else {
                     VirtualFile beansXml = resourceRoot.getRoot().getChild(META_INF_BEANS_XML);
                     if (beansXml.exists() && beansXml.isFile()) {
