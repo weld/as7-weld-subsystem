@@ -59,7 +59,6 @@ import org.jboss.as.weld.discovery.WeldTypeDiscoveryConfiguration;
 import org.jboss.as.weld.ejb.EjbDescriptorImpl;
 import org.jboss.as.weld.services.bootstrap.WeldJpaInjectionServices;
 import org.jboss.as.weld.util.Indices;
-import org.jboss.as.weld.util.ResourceRoots;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.Index;
@@ -230,7 +229,11 @@ public class BeanArchiveProcessor implements DeploymentUnitProcessor {
             }
             this.prefix = prefix;
             this.indexes = AnnotationIndexUtils.getAnnotationIndexes(deploymentUnit);
-            this.discoveryConfiguration = deploymentUnit.getAttachment(WeldAttachments.WELD_TYPE_DISCOVERY_CONFIGURATION);
+            DeploymentUnit rootDeploymentUnit = deploymentUnit;
+            if (rootDeploymentUnit.getParent() != null) {
+                rootDeploymentUnit = rootDeploymentUnit.getParent();
+            }
+            this.discoveryConfiguration = rootDeploymentUnit.getAttachment(WeldAttachments.WELD_TYPE_DISCOVERY_CONFIGURATION);
             this.ejbComponentDescriptions = ejbComponentDescriptions;
             this.reflectionIndex = deploymentUnit.getAttachment(Attachments.REFLECTION_INDEX);
             this.deploymentResourceRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);

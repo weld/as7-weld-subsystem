@@ -61,6 +61,10 @@ public class WeldTypeDiscoveryProcessor implements DeploymentUnitProcessor {
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
         final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
 
+        if (deploymentUnit.getParent() != null) {
+            return; // only start WeldBootstrap for the root deployment
+        }
+
         if (!WeldDeploymentMarker.isPartOfWeldDeployment(deploymentUnit)) {
             return;
         }
