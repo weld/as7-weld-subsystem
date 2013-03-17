@@ -23,9 +23,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 
-import javax.enterprise.context.NormalScope;
 import javax.enterprise.inject.spi.Extension;
-import javax.inject.Scope;
 
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
@@ -38,7 +36,6 @@ import org.jboss.as.weld.deployment.WeldAttachments;
 import org.jboss.as.weld.discovery.AnnotationType;
 import org.jboss.as.weld.discovery.WeldTypeDiscoveryConfiguration;
 import org.jboss.as.weld.util.Indices;
-import org.jboss.jandex.DotName;
 import org.jboss.weld.bootstrap.WeldBootstrap;
 import org.jboss.weld.bootstrap.api.TypeDiscoveryConfiguration;
 import org.jboss.weld.bootstrap.spi.Metadata;
@@ -54,45 +51,39 @@ import com.google.common.collect.Lists;
  */
 public class WeldTypeDiscoveryProcessor implements DeploymentUnitProcessor {
 
-    private final DotName NORMAL_SCOPE_DOTNAME = DotName.createSimple(NormalScope.class.getName());
-    private final DotName SCOPE_DOTNAME = DotName.createSimple(Scope.class.getName());
-
     @Override
     public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
-        final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
-
-        if (deploymentUnit.getParent() != null) {
+        if (phaseContext.getDeploymentUnit().getParent() != null) {
             return; // only start WeldBootstrap for the root deployment
         }
+        final DeploymentUnit rootDeploymentUnit = phaseContext.getDeploymentUnit();
 
-        if (!WeldDeploymentMarker.isPartOfWeldDeployment(deploymentUnit)) {
+        if (!WeldDeploymentMarker.isPartOfWeldDeployment(rootDeploymentUnit)) {
             return;
         }
 
-        final List<Metadata<Extension>> extensions = deploymentUnit.getAttachmentList(WeldAttachments.PORTABLE_EXTENSIONS);
+        final List<Metadata<Extension>> extensions = rootDeploymentUnit.getAttachmentList(WeldAttachments.PORTABLE_EXTENSIONS);
 
         final WeldBootstrap bootstrap = new WeldBootstrap();
         final TypeDiscoveryConfiguration configuration = bootstrap.startExtensions(extensions);
 
-        final CompositeIndex index = deploymentUnit.getAttachment(Attachments.COMPOSITE_ANNOTATION_INDEX);
+        final CompositeIndex index = rootDeploymentUnit.getAttachment(Attachments.COMPOSITE_ANNOTATION_INDEX);
 
-        Set<AnnotationType> beanDefiningAnnotations = getBeanDefiningAnnotations(configuration, index);
+        Set<AnnotationType> beanDefiningAnnotations = getBeanDefiningAnnotations(configuration, index, rootDeploymentUnit);
         Set<AnnotationType> requiredAnnotations = flattenRequiredAnnotations(configuration, index);
 
         WeldTypeDiscoveryConfiguration discoveryConfiguration = new WeldTypeDiscoveryConfiguration(beanDefiningAnnotations, requiredAnnotations);
 
-        deploymentUnit.putAttachment(WeldAttachments.WELD_BOOTSTRAP, bootstrap);
-        deploymentUnit.putAttachment(WeldAttachments.WELD_TYPE_DISCOVERY_CONFIGURATION, discoveryConfiguration);
+        rootDeploymentUnit.putAttachment(WeldAttachments.WELD_BOOTSTRAP, bootstrap);
+        rootDeploymentUnit.putAttachment(WeldAttachments.WELD_TYPE_DISCOVERY_CONFIGURATION, discoveryConfiguration);
     }
 
-    private Set<AnnotationType> getBeanDefiningAnnotations(TypeDiscoveryConfiguration configuration, CompositeIndex index) {
+    private Set<AnnotationType> getBeanDefiningAnnotations(TypeDiscoveryConfiguration configuration, CompositeIndex index, DeploymentUnit rootDeploymentUnit) {
         ImmutableSet.Builder<AnnotationType> builder = ImmutableSet.builder();
         // scopes known to weld
         builder.addAll(Lists.transform(new ArrayList<Class<? extends Annotation>>(configuration.getKnownBeanDefiningAnnotations()), AnnotationType.FOR_CLASS));
-        // found normal scopes (may overlap with scopes known to weld)
-        builder.addAll(Lists.transform(getAnnotationTargets(index.getAnnotations(NORMAL_SCOPE_DOTNAME)), AnnotationType.FOR_CLASSINFO));
-        // found pseudo scopes (may overlap with scopes known to weld)
-        builder.addAll(Lists.transform(getAnnotationTargets(index.getAnnotations(SCOPE_DOTNAME)), AnnotationType.FOR_CLASSINFO));
+        // add additional scopes discovered in the deployment
+        builder.addAll(rootDeploymentUnit.getAttachmentList(WeldAttachments.ADDITIONAL_BEAN_DEFINING_ANNOTATIONS));
         return builder.build();
     }
 

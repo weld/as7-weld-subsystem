@@ -127,9 +127,6 @@ public class LegacyBeansXmlProcessor implements DeploymentUnitProcessor {
             deploymentUnit.putAttachment(ExplicitBeanArchiveMetadataContainer.ATTACHMENT_KEY, deploymentMetadata);
             // mark the deployment as requiring CDI integration
             WeldDeploymentMarker.mark(deploymentUnit);
-            if (deploymentUnit.getParent() != null) {
-                WeldDeploymentMarker.mark(deploymentUnit.getParent());
-            }
         }
     }
 

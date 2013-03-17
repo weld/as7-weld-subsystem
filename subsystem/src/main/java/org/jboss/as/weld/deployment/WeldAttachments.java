@@ -28,6 +28,7 @@ import org.jboss.as.server.deployment.AttachmentList;
 import org.jboss.as.server.deployment.module.ResourceRoot;
 import org.jboss.as.weld.deployment.processors.WeldDependencyProcessor;
 import org.jboss.as.weld.deployment.processors.WeldTypeDiscoveryProcessor;
+import org.jboss.as.weld.discovery.AnnotationType;
 import org.jboss.as.weld.discovery.WeldTypeDiscoveryConfiguration;
 import org.jboss.weld.bootstrap.WeldBootstrap;
 import org.jboss.weld.bootstrap.api.CDI11Bootstrap;
@@ -84,4 +85,11 @@ public class WeldAttachments {
      * The {@link ResourceRoot} for WEB-INF/classes of a web archive.
      */
     public static final AttachmentKey<ResourceRoot> CLASSES_RESOURCE_ROOT = AttachmentKey.create(ResourceRoot.class);
+
+    /**
+     * Scopes for built-in contexts combined with additional normal and pseudo scopes discovered in the deployment.
+     * @see CdiAnnotationProcessor
+     * @see WeldTypeDiscoveryProcessor
+     */
+    public static final AttachmentKey<AttachmentList<AnnotationType>> ADDITIONAL_BEAN_DEFINING_ANNOTATIONS = AttachmentKey.createList(AnnotationType.class);
 }
