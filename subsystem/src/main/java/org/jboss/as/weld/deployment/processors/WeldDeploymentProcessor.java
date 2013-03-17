@@ -32,9 +32,7 @@ import java.util.Set;
 import javax.enterprise.inject.spi.Extension;
 import javax.transaction.TransactionManager;
 import javax.transaction.UserTransaction;
-import javax.validation.ValidatorFactory;
 
-import org.jboss.as.ee.beanvalidation.BeanValidationAttachments;
 import org.jboss.as.ee.component.EEApplicationDescription;
 import org.jboss.as.ee.component.EEModuleDescription;
 import org.jboss.as.ee.naming.JavaNamespaceSetup;
@@ -74,7 +72,6 @@ import org.jboss.as.weld.services.bootstrap.WeldJpaInjectionServices;
 import org.jboss.as.weld.services.bootstrap.WeldResourceInjectionServices;
 import org.jboss.as.weld.services.bootstrap.WeldSecurityServices;
 import org.jboss.as.weld.services.bootstrap.WeldTransactionServices;
-import org.jboss.as.weld.services.bootstrap.WeldValidationServices;
 import org.jboss.modules.Module;
 import org.jboss.modules.ModuleIdentifier;
 import org.jboss.msc.service.ServiceBuilder;
@@ -87,7 +84,6 @@ import org.jboss.weld.ejb.spi.EjbServices;
 import org.jboss.weld.injection.spi.EjbInjectionServices;
 import org.jboss.weld.injection.spi.JpaInjectionServices;
 import org.jboss.weld.injection.spi.ResourceInjectionServices;
-import org.jboss.weld.validation.spi.ValidationServices;
 
 /**
  * Deployment processor that installs the weld services and all other required services
@@ -225,10 +221,6 @@ public class WeldDeploymentProcessor implements DeploymentUnitProcessor {
         final WeldDeployment deployment = new WeldDeployment(beanDeploymentArchives, extensions, module, subDeploymentLoaders, deploymentUnit);
 
         final WeldBootstrapService weldBootstrapService = new WeldBootstrapService(deployment, Environments.EE_INJECT, deploymentUnit.getName());
-        //hook up validation service
-        //TODO: we need to change weld so this is a per-BDA service
-        final ValidatorFactory factory = deploymentUnit.getAttachment(BeanValidationAttachments.VALIDATOR_FACTORY);
-        weldBootstrapService.addWeldService(ValidationServices.class, new WeldValidationServices(factory));
 
         weldBootstrapService.addWeldService(EjbInjectionServices.class, ejbInjectionServices);
         weldBootstrapService.addWeldService(ResourceInjectionServices.class, resourceInjectionServices);
