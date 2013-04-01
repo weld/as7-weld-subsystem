@@ -1,10 +1,10 @@
 AS7 Weld Subsystem
 ==================
 
-This is a JBoss AS 7 subsystem that provides integration with Weld 2.
+This is a JBoss AS subsystem that provides integration with Weld 2.
 
-The installation script provided in the /installer directory works on an existing JBoss AS 7 installation
-and allows it to be updated with Weld 2. The script updates everything necessary for Weld 2 to run on JBoss AS 7.
+The installation script provided in the /installer directory works on an existing JBoss AS installation
+and allows it to be updated with Weld 2. The script updates everything necessary for Weld 2 to run on JBoss AS.
 Namely it updates the following modules: 
 * cdi-api
 * weld-api
@@ -15,9 +15,9 @@ Namely it updates the following modules:
 Installation
 ------------
 
-Set the $JBOSS_HOME environment property to point to JBoss EAP 6.1 Alpha (JBoss AS 7.2.0.Final) or later
+Set the $JBOSS_HOME environment property to point to JBoss AS 8.x or later
 
-> export JBOSS_HOME=/opt/jboss/jboss-eap-6.1
+> export JBOSS_HOME=/opt/jboss/jboss-as-8.0.0.Alpha1-SNAPSHOT
 
 Run the build
 
