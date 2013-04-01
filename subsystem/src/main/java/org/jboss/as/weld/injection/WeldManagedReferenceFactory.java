@@ -36,7 +36,7 @@ import org.jboss.as.ee.component.ComponentDescription;
 import org.jboss.as.ejb3.component.messagedriven.MessageDrivenComponentDescription;
 import org.jboss.as.naming.ManagedReference;
 import org.jboss.as.naming.ManagedReferenceFactory;
-import org.jboss.as.web.deployment.component.WebComponentDescription;
+import org.jboss.as.web.common.WebComponentDescription;
 import org.jboss.as.webservices.injection.WSComponentDescription;
 import org.jboss.as.weld.WeldBootstrapService;
 import org.jboss.as.weld.WeldLogger;

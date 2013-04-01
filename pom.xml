@@ -46,7 +46,7 @@
         <jboss.logging.version>3.1.1.GA</jboss.logging.version>
         <jboss.logging.processor.version>1.0.2.Final</jboss.logging.processor.version>
         <jboss.metadata.web.version>7.0.3.Final</jboss.metadata.web.version>
-        <jboss.msc.version>1.0.2.GA</jboss.msc.version>
+        <jboss.msc.version>1.1.1.Final</jboss.msc.version>
         <jboss.vfs.version>3.1.0.Final</jboss.vfs.version>
         <weld.version>2.0.0-SNAPSHOT</weld.version>
         <weld.spi.version>2.0-SNAPSHOT</weld.spi.version>
@@ -139,7 +139,7 @@
 
             <dependency>
                 <groupId>org.jboss.as</groupId>
-                <artifactId>jboss-as-web</artifactId>
+                <artifactId>jboss-as-web-common</artifactId>
                 <version>${jboss.as7.version}</version>
             </dependency>
 
@@ -153,6 +153,7 @@
                 <groupId>org.jboss.as</groupId>
                 <artifactId>jboss-as-subsystem-test</artifactId>
                 <version>${jboss.as7.version}</version>
+                <type>pom</type>
             </dependency>
 
             <dependency>
@@ -166,7 +167,6 @@
                 <artifactId>jboss-vfs</artifactId>
                 <version>${jboss.vfs.version}</version>
             </dependency>
-
         </dependencies>
     </dependencyManagement>
 

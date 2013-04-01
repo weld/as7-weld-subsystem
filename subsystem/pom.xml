@@ -145,7 +145,7 @@
 
         <dependency>
             <groupId>org.jboss.as</groupId>
-            <artifactId>jboss-as-web</artifactId>
+            <artifactId>jboss-as-web-common</artifactId>
         </dependency>
 
         <dependency>
@@ -214,6 +214,7 @@
             <groupId>org.jboss.as</groupId>
             <artifactId>jboss-as-subsystem-test</artifactId>
             <scope>test</scope>
+            <type>pom</type>
         </dependency>
     </dependencies>
 </project>
