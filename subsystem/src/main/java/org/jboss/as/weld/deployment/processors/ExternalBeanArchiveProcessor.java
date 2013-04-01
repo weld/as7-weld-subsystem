@@ -84,7 +84,7 @@ public class ExternalBeanArchiveProcessor implements DeploymentUnitProcessor {
         deploymentUnits.add(deploymentUnit);
         deploymentUnits.addAll(deploymentUnit.getAttachmentList(Attachments.SUB_DEPLOYMENTS));
 
-        AS7BeansXmlParser parser = new AS7BeansXmlParser();
+        AS7BeansXmlParser parser = new AS7BeansXmlParser(deploymentUnit);
 
         final Map<URL, List<DeploymentUnit>> deploymentUnitMap = new HashMap<URL, List<DeploymentUnit>>();
 

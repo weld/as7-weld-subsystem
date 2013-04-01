@@ -43,7 +43,6 @@ import org.jboss.as.jpa.spi.PersistenceUnitMetadata;
 import org.jboss.as.naming.deployment.JndiNamingDependencyProcessor;
 import org.jboss.as.security.service.SimpleSecurityManager;
 import org.jboss.as.security.service.SimpleSecurityManagerService;
-import org.jboss.as.server.deployment.AttachmentKey;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
@@ -241,7 +240,7 @@ public class WeldDeploymentProcessor implements DeploymentUnitProcessor {
         weldBootstrapServiceBuilder.install();
 
         final List<SetupAction> setupActions  = new ArrayList<SetupAction>();
-        JavaNamespaceSetup naming = deploymentUnit.getAttachment(AttachmentKey.<JavaNamespaceSetup>create(JavaNamespaceSetup.class));
+        JavaNamespaceSetup naming = deploymentUnit.getAttachment(org.jboss.as.ee.naming.Attachments.JAVA_NAMESPACE_SETUP_ACTION);
         if(naming != null) {
             setupActions.add(naming);
         }

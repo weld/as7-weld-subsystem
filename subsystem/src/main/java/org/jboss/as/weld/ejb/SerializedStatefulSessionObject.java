@@ -21,13 +21,13 @@
  */
 package org.jboss.as.weld.ejb;
 
-import org.jboss.ejb.client.SessionID;
-import org.jboss.msc.service.ServiceName;
-
 import java.io.ObjectStreamException;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.jboss.ejb.client.SessionID;
+import org.jboss.msc.service.ServiceName;
 
 /**
  * Serialized form of a SFSB
@@ -56,7 +56,7 @@ public class SerializedStatefulSessionObject implements Serializable {
         for (Map.Entry<String, String> e : serviceNames.entrySet()) {
             names.put(e.getKey(), ServiceName.parse(e.getValue()));
         }
-        return StatefulSessionObjectReferenceFactory.create(sessionID, ServiceName.parse(componentServiceName), names);
+        return new StatefulSessionObjectReferenceImpl(sessionID, ServiceName.parse(componentServiceName), names);
 
     }
 }

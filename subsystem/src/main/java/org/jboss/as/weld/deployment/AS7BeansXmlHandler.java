@@ -25,6 +25,7 @@ package org.jboss.as.weld.deployment;
 import java.net.URL;
 
 import org.jboss.as.weld.WeldLogger;
+import org.jboss.metadata.property.PropertyReplacer;
 import org.jboss.weld.xml.BeansXmlHandler;
 import org.xml.sax.SAXException;
 import org.xml.sax.SAXParseException;
@@ -37,8 +38,11 @@ import org.xml.sax.SAXParseException;
  */
 public class AS7BeansXmlHandler extends BeansXmlHandler {
 
-    public AS7BeansXmlHandler(URL file) {
+    private final PropertyReplacer replacer;
+
+    public AS7BeansXmlHandler(URL file, PropertyReplacer replacer) {
         super(file);
+        this.replacer = replacer;
     }
 
     @Override
@@ -53,5 +57,10 @@ public class AS7BeansXmlHandler extends BeansXmlHandler {
             return;
         }
         WeldLogger.DEPLOYMENT_LOGGER.beansXmlValidationError(file, e.getLineNumber(), e.getMessage());
+    }
+
+    @Override
+    protected String interpolate(String text) {
+        return replacer.replaceProperties(text);
     }
 }

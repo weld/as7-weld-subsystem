@@ -23,6 +23,9 @@ package org.jboss.as.weld.deployment;
 
 import java.net.URL;
 
+import org.jboss.as.ee.structure.SpecDescriptorPropertyReplacement;
+import org.jboss.as.server.deployment.DeploymentUnit;
+import org.jboss.metadata.property.PropertyReplacer;
 import org.jboss.weld.xml.BeansXmlParser;
 
 /**
@@ -34,7 +37,13 @@ import org.jboss.weld.xml.BeansXmlParser;
  */
 public class AS7BeansXmlParser extends BeansXmlParser {
 
+    private final PropertyReplacer replacer;
+
+    public AS7BeansXmlParser(DeploymentUnit deploymentUnit) {
+        this.replacer = SpecDescriptorPropertyReplacement.propertyReplacer(deploymentUnit);
+    }
+
     protected AS7BeansXmlHandler getHandler(final URL beansXml) {
-        return new AS7BeansXmlHandler(beansXml);
+        return new AS7BeansXmlHandler(beansXml, replacer);
     }
 }

@@ -36,6 +36,7 @@ import org.jboss.as.ee.component.InterceptorDescription;
 import org.jboss.as.ee.component.interceptors.InterceptorOrder;
 import org.jboss.as.ee.component.interceptors.UserInterceptorFactory;
 import org.jboss.as.ejb3.component.EJBComponentDescription;
+import org.jboss.as.ejb3.component.stateful.SerializedCdiInterceptorsKey;
 import org.jboss.as.ejb3.component.stateful.StatefulComponentDescription;
 import org.jboss.as.server.deployment.Attachments;
 import org.jboss.as.server.deployment.DeploymentPhaseContext;
@@ -48,7 +49,6 @@ import org.jboss.as.weld.WeldBootstrapService;
 import org.jboss.as.weld.WeldDeploymentMarker;
 import org.jboss.as.weld.WeldMessages;
 import org.jboss.as.weld.WeldStartService;
-import org.jboss.as.weld.compatibility.Compatibility;
 import org.jboss.as.weld.ejb.EjbRequestScopeActivationInterceptor;
 import org.jboss.as.weld.ejb.Jsr299BindingsInterceptor;
 import org.jboss.as.weld.injection.WeldInjectionInterceptor;
@@ -67,7 +67,7 @@ import org.jboss.msc.service.ServiceTarget;
 public class WeldComponentIntegrationProcessor implements DeploymentUnitProcessor {
 
     /*
-     * This should be defined in InterceptorOrder.ComponentPostConstruct but we cannot rely on that and be backwards-compatible
+     * TODO: This should be defined in InterceptorOrder.ComponentPostConstruct but we cannot rely on that and be backwards-compatible
      * at the same time :-/
      */
     public static final int POST_CONSTRUCT_REQUEST_SCOPE_ACTIVATING_INTERCEPTOR_ORDER = 0xA80;
@@ -119,7 +119,7 @@ public class WeldComponentIntegrationProcessor implements DeploymentUnitProcesso
 
                     //add a context key for weld interceptor replication
                     if (description instanceof StatefulComponentDescription) {
-                        configuration.getInterceptorContextKeys().add(Compatibility.SERIALIZABLE_CDI_INTERCEPTORS_KEY_CLASS);
+                        configuration.getInterceptorContextKeys().add(SerializedCdiInterceptorsKey.class);
                     }
                 }
             });

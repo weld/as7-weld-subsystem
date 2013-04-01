@@ -21,27 +21,125 @@
  */
 package org.jboss.as.weld.deployment.processors;
 
-import java.net.URL;
+import java.net.MalformedURLException;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
-import org.jboss.as.ee.structure.SpecDescriptorPropertyReplacement;
+import org.jboss.as.ee.structure.DeploymentType;
+import org.jboss.as.ee.structure.DeploymentTypeMarker;
+import org.jboss.as.server.deployment.Attachments;
+import org.jboss.as.server.deployment.DeploymentPhaseContext;
 import org.jboss.as.server.deployment.DeploymentUnit;
-import org.jboss.as.weld.deployment.AS7BeansXmlHandler;
+import org.jboss.as.server.deployment.DeploymentUnitProcessingException;
+import org.jboss.as.server.deployment.DeploymentUnitProcessor;
+import org.jboss.as.server.deployment.SubDeploymentMarker;
+import org.jboss.as.server.deployment.module.ModuleRootMarker;
+import org.jboss.as.server.deployment.module.ResourceRoot;
+import org.jboss.as.weld.WeldDeploymentMarker;
+import org.jboss.as.weld.WeldLogger;
+import org.jboss.as.weld.WeldMessages;
 import org.jboss.as.weld.deployment.AS7BeansXmlParser;
-import org.jboss.as.weld.deployment.ReplacingBeansXmlHandler;
+import org.jboss.as.weld.deployment.BeanArchiveMetadata;
+import org.jboss.as.weld.deployment.WeldDeploymentMetadata;
+import org.jboss.vfs.VirtualFile;
+import org.jboss.weld.bootstrap.spi.BeansXml;
 
 /**
  * Deployment processor that finds <literal>beans.xml</literal> files and attaches the information to the deployment
  *
  * @author Stuart Douglas
  */
-public class BeansXmlProcessor extends LegacyBeansXmlProcessor {
+public class BeansXmlProcessor implements DeploymentUnitProcessor {
+
+    private static final String WEB_INF_BEANS_XML = "WEB-INF/beans.xml";
+    private static final String META_INF_BEANS_XML = "META-INF/beans.xml";
 
     @Override
-    protected AS7BeansXmlParser getBeansXmlParser(final DeploymentUnit deploymentUnit) {
-        return new AS7BeansXmlParser() {
-            protected AS7BeansXmlHandler getHandler(final URL beansXml) {
-                return new ReplacingBeansXmlHandler(beansXml, SpecDescriptorPropertyReplacement.propertyReplacer(deploymentUnit));
+    public void deploy(DeploymentPhaseContext phaseContext) throws DeploymentUnitProcessingException {
+        final DeploymentUnit deploymentUnit = phaseContext.getDeploymentUnit();
+
+
+        Set<BeanArchiveMetadata> beanArchiveMetadata = new HashSet<BeanArchiveMetadata>();
+        ResourceRoot deploymentRoot = deploymentUnit.getAttachment(Attachments.DEPLOYMENT_ROOT);
+        if (deploymentRoot == null) {
+            return;
+        }
+
+        AS7BeansXmlParser parser = new AS7BeansXmlParser(deploymentUnit);
+
+        ResourceRoot classesRoot = null;
+        List<ResourceRoot> structure = deploymentUnit.getAttachmentList(Attachments.RESOURCE_ROOTS);
+        for (ResourceRoot resourceRoot : structure) {
+            if (ModuleRootMarker.isModuleRoot(resourceRoot) && !SubDeploymentMarker.isSubDeployment(resourceRoot)) {
+                if (resourceRoot.getRootName().equals("classes")) {
+                    // hack for dealing with war modules
+                    classesRoot = resourceRoot;
+                } else {
+                    VirtualFile beansXml = resourceRoot.getRoot().getChild(META_INF_BEANS_XML);
+                    if (beansXml.exists() && beansXml.isFile()) {
+                        WeldLogger.DEPLOYMENT_LOGGER.debugf("Found beans.xml: %s", beansXml.toString());
+                        beanArchiveMetadata.add(new BeanArchiveMetadata(beansXml, resourceRoot, parseBeansXml(beansXml,
+                                parser, deploymentUnit), false));
+                    }
+                }
             }
-        };
+        }
+
+        if (DeploymentTypeMarker.isType(DeploymentType.WAR, deploymentUnit)) {
+            final VirtualFile rootBeansXml = deploymentRoot.getRoot().getChild(WEB_INF_BEANS_XML);
+            final boolean rootBeansXmlPresent = rootBeansXml.exists() && rootBeansXml.isFile();
+
+            VirtualFile beansXml = null;
+            if (classesRoot != null) {
+                beansXml = classesRoot.getRoot().getChild(META_INF_BEANS_XML);
+            }
+            final boolean beansXmlPresent = beansXml != null && beansXml.exists() && beansXml.isFile();
+
+            if (rootBeansXmlPresent) {
+                if (beansXmlPresent) {
+                    // warn that it is not portable to use both locations at the same time
+                    WeldLogger.DEPLOYMENT_LOGGER.duplicateBeansXml();
+                    beanArchiveMetadata.add(new BeanArchiveMetadata(rootBeansXml, beansXml, classesRoot, parseBeansXml(rootBeansXml, parser, deploymentUnit), true));
+                } else {
+                    WeldLogger.DEPLOYMENT_LOGGER.debugf("Found beans.xml: %s", rootBeansXml);
+                    beanArchiveMetadata.add(new BeanArchiveMetadata(rootBeansXml, classesRoot, parseBeansXml(rootBeansXml, parser, deploymentUnit), true));
+                }
+            } else if (beansXmlPresent) {
+                WeldLogger.DEPLOYMENT_LOGGER.debugf("Found beans.xml: %s", beansXml);
+                beanArchiveMetadata.add(new BeanArchiveMetadata(beansXml, classesRoot, parseBeansXml(beansXml, parser, deploymentUnit), true));
+            }
+        } else if (!DeploymentTypeMarker.isType(DeploymentType.EAR, deploymentUnit)) {
+            final VirtualFile rootBeansXml = deploymentRoot.getRoot().getChild(META_INF_BEANS_XML);
+            if (rootBeansXml.exists() && rootBeansXml.isFile()) {
+                WeldLogger.DEPLOYMENT_LOGGER.debugf("Found beans.xml: %s", rootBeansXml.toString());
+                beanArchiveMetadata.add(new BeanArchiveMetadata(rootBeansXml, deploymentRoot, parseBeansXml(rootBeansXml, parser, deploymentUnit), true));
+            }
+        }
+
+        if (!beanArchiveMetadata.isEmpty()) {
+            WeldDeploymentMetadata deploymentMetadata = new WeldDeploymentMetadata(beanArchiveMetadata);
+            deploymentUnit.putAttachment(WeldDeploymentMetadata.ATTACHMENT_KEY, deploymentMetadata);
+            // mark the deployment as requiring CDI integration
+            WeldDeploymentMarker.mark(deploymentUnit);
+            if (deploymentUnit.getParent() != null) {
+                WeldDeploymentMarker.mark(deploymentUnit.getParent());
+            }
+        }
+    }
+
+    @Override
+    public void undeploy(DeploymentUnit context) {
+
+    }
+
+    private BeansXml parseBeansXml(VirtualFile beansXmlFile, AS7BeansXmlParser parser, final DeploymentUnit deploymentUnit) throws DeploymentUnitProcessingException {
+        try {
+            return parser.parse(beansXmlFile.asFileURL());
+        } catch (MalformedURLException e) {
+            throw WeldMessages.MESSAGES.couldNotGetBeansXmlAsURL(beansXmlFile.toString(), e);
+        } catch (RuntimeException e) {
+            throw new DeploymentUnitProcessingException(e);
+        }
     }
 }

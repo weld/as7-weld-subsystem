@@ -26,18 +26,14 @@ import java.util.List;
 
 import org.jboss.as.controller.AbstractBoottimeAddStepHandler;
 import org.jboss.as.controller.OperationContext;
-import org.jboss.as.controller.OperationStepHandler;
 import org.jboss.as.controller.ServiceVerificationHandler;
 import org.jboss.as.server.AbstractDeploymentChainStep;
 import org.jboss.as.server.DeploymentProcessorTarget;
-import org.jboss.as.server.deployment.DeploymentUnitProcessor;
 import org.jboss.as.server.deployment.Phase;
-import org.jboss.as.weld.compatibility.ApplicationServerVersion;
 import org.jboss.as.weld.deployment.CdiAnnotationProcessor;
 import org.jboss.as.weld.deployment.processors.BeanArchiveProcessor;
 import org.jboss.as.weld.deployment.processors.BeansXmlProcessor;
 import org.jboss.as.weld.deployment.processors.ExternalBeanArchiveProcessor;
-import org.jboss.as.weld.deployment.processors.LegacyBeansXmlProcessor;
 import org.jboss.as.weld.deployment.processors.WebIntegrationProcessor;
 import org.jboss.as.weld.deployment.processors.WeldBeanManagerServiceProcessor;
 import org.jboss.as.weld.deployment.processors.WeldComponentIntegrationProcessor;
@@ -56,8 +52,6 @@ import org.jboss.msc.service.ServiceController.Mode;
  * @author Emanuel Muckenhuber
  */
 class WeldSubsystemAdd extends AbstractBoottimeAddStepHandler {
-    public static final int PARSE_CDI_ANNOTATIONS                       = 0x2A10;
-    public static final int POST_MODULE_WELD_WEB_INTEGRATION            = 0x0700;
 
     static final WeldSubsystemAdd INSTANCE = new WeldSubsystemAdd();
 
@@ -66,13 +60,20 @@ class WeldSubsystemAdd extends AbstractBoottimeAddStepHandler {
     }
 
     protected void performBoottime(OperationContext context, ModelNode operation, ModelNode model, ServiceVerificationHandler verificationHandler, List<ServiceController<?>> newControllers) {
-        OperationStepHandler handler = null;
-        if (ApplicationServerVersion.isEqualOrNewer(ApplicationServerVersion.AS712Final)) {
-            handler = new DeploymentProcessorRegistrar();
-        } else {
-            handler = new AS711DeploymentRegistrar();
-        }
-        context.addStep(handler, OperationContext.Stage.RUNTIME);
+        context.addStep(new AbstractDeploymentChainStep() {
+            protected void execute(DeploymentProcessorTarget processorTarget) {
+                processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_CDI_ANNOTATIONS, new CdiAnnotationProcessor());
+                processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_WELD_DEPLOYMENT, new BeansXmlProcessor());
+                processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_WELD, new WeldDependencyProcessor());
+                processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_WEB_INTEGRATION, new WebIntegrationProcessor());
+                processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_BEAN_ARCHIVE, new BeanArchiveProcessor());
+                processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_EXTERNAL_BEAN_ARCHIVE, new ExternalBeanArchiveProcessor());
+                processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_PORTABLE_EXTENSIONS, new WeldPortableExtensionProcessor());
+                processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_COMPONENT_INTEGRATION, new WeldComponentIntegrationProcessor());
+                processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.INSTALL, Phase.INSTALL_WELD_DEPLOYMENT, new WeldDeploymentProcessor());
+                processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.INSTALL, Phase.INSTALL_WELD_BEAN_MANAGER, new WeldBeanManagerServiceProcessor());
+            }
+        }, OperationContext.Stage.RUNTIME);
 
         TCCLSingletonService singleton = new TCCLSingletonService();
         newControllers.add(context.getServiceTarget().addService(TCCLSingletonService.SERVICE_NAME, singleton).setInitialMode(
@@ -81,54 +82,5 @@ class WeldSubsystemAdd extends AbstractBoottimeAddStepHandler {
 
     protected boolean requiresRuntimeVerification() {
         return false;
-    }
-
-    /**
-     * The default registrar for Weld deployment processors.
-     *
-     * @author Jozef Hartinger
-     *
-     */
-    private static class DeploymentProcessorRegistrar extends AbstractDeploymentChainStep {
-        @Override
-        protected void execute(DeploymentProcessorTarget processorTarget) {
-            processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.PARSE, PARSE_CDI_ANNOTATIONS, new CdiAnnotationProcessor());
-            processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.PARSE, Phase.PARSE_WELD_DEPLOYMENT, new BeansXmlProcessor());
-            processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.DEPENDENCIES, Phase.DEPENDENCIES_WELD, new WeldDependencyProcessor());
-            processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, POST_MODULE_WELD_WEB_INTEGRATION, new WebIntegrationProcessor());
-            processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_BEAN_ARCHIVE, new BeanArchiveProcessor());
-            processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, org.jboss.as.weld.compatibility.Phase.POST_MODULE_WELD_EXTERNAL_BEAN_ARCHIVE, new ExternalBeanArchiveProcessor());
-            processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_PORTABLE_EXTENSIONS, new WeldPortableExtensionProcessor());
-            processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.POST_MODULE, Phase.POST_MODULE_WELD_COMPONENT_INTEGRATION, new WeldComponentIntegrationProcessor());
-            processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.INSTALL, Phase.INSTALL_WELD_DEPLOYMENT, new WeldDeploymentProcessor());
-            processorTarget.addDeploymentProcessor(WeldExtension.SUBSYSTEM_NAME, Phase.INSTALL, Phase.INSTALL_WELD_BEAN_MANAGER, new WeldBeanManagerServiceProcessor());
-        }
-
-    }
-
-    /**
-     * Deployment registrar that is compatible with AS 7.1.1.Final.
-     *
-     * It uses the deprecated {@link DeploymentProcessorTarget#addDeploymentProcessor(Phase, int, DeploymentUnitProcessor)} method
-     * and also registers {@link LegacyBeansXmlProcessor}.
-     *
-     * @author Jozef Hartinger
-     *
-     */
-    private static class AS711DeploymentRegistrar extends AbstractDeploymentChainStep {
-        @SuppressWarnings("deprecation")
-        @Override
-        protected void execute(DeploymentProcessorTarget processorTarget) {
-            processorTarget.addDeploymentProcessor(Phase.PARSE, PARSE_CDI_ANNOTATIONS, new CdiAnnotationProcessor());
-            processorTarget.addDeploymentProcessor(Phase.PARSE, Phase.PARSE_WELD_DEPLOYMENT, new LegacyBeansXmlProcessor());
-            processorTarget.addDeploymentProcessor(Phase.DEPENDENCIES, Phase.DEPENDENCIES_WELD, new WeldDependencyProcessor());
-            processorTarget.addDeploymentProcessor(Phase.POST_MODULE, POST_MODULE_WELD_WEB_INTEGRATION, new WebIntegrationProcessor());
-            processorTarget.addDeploymentProcessor(Phase.POST_MODULE, Phase.POST_MODULE_WELD_BEAN_ARCHIVE, new BeanArchiveProcessor());
-            processorTarget.addDeploymentProcessor(Phase.POST_MODULE, org.jboss.as.weld.compatibility.Phase.POST_MODULE_WELD_EXTERNAL_BEAN_ARCHIVE, new ExternalBeanArchiveProcessor());
-            processorTarget.addDeploymentProcessor(Phase.POST_MODULE, Phase.POST_MODULE_WELD_PORTABLE_EXTENSIONS, new WeldPortableExtensionProcessor());
-            processorTarget.addDeploymentProcessor(Phase.POST_MODULE, Phase.POST_MODULE_WELD_COMPONENT_INTEGRATION, new WeldComponentIntegrationProcessor());
-            processorTarget.addDeploymentProcessor(Phase.INSTALL, Phase.INSTALL_WELD_DEPLOYMENT, new WeldDeploymentProcessor());
-            processorTarget.addDeploymentProcessor(Phase.INSTALL, Phase.INSTALL_WELD_BEAN_MANAGER, new WeldBeanManagerServiceProcessor());
-        }
     }
 }

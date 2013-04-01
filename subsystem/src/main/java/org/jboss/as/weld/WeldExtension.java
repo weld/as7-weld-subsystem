@@ -41,10 +41,10 @@ import org.jboss.as.controller.SimpleResourceDefinition;
 import org.jboss.as.controller.SubsystemRegistration;
 import org.jboss.as.controller.descriptions.StandardResourceDescriptionResolver;
 import org.jboss.as.controller.operations.common.GenericSubsystemDescribeHandler;
+import org.jboss.as.controller.operations.common.Util;
 import org.jboss.as.controller.parsing.ExtensionParsingContext;
 import org.jboss.as.controller.persistence.SubsystemMarshallingContext;
 import org.jboss.as.controller.registry.ManagementResourceRegistration;
-import org.jboss.as.weld.compatibility.Operations;
 import org.jboss.dmr.ModelNode;
 import org.jboss.staxmapper.XMLElementReader;
 import org.jboss.staxmapper.XMLElementWriter;
@@ -90,10 +90,8 @@ public class WeldExtension implements Extension {
     @Override
     public void initialize(final ExtensionContext context) {
         WeldLogger.ROOT_LOGGER.debug("Activating Weld Extension");
-        // final SubsystemRegistration subsystem = context.registerSubsystem(SUBSYSTEM_NAME, MANAGEMENT_API_MAJOR_VERSION,
-        // MANAGEMENT_API_MINOR_VERSION, MANAGEMENT_API_MICRO_VERSION);
-        //  AS 7.1.2.Final does not support micro version
-        final SubsystemRegistration subsystem = context.registerSubsystem(SUBSYSTEM_NAME, MANAGEMENT_API_MAJOR_VERSION, MANAGEMENT_API_MINOR_VERSION);
+        final SubsystemRegistration subsystem = context.registerSubsystem(SUBSYSTEM_NAME, MANAGEMENT_API_MAJOR_VERSION,
+                MANAGEMENT_API_MINOR_VERSION, MANAGEMENT_API_MICRO_VERSION);
         final ManagementResourceRegistration registration = subsystem.registerSubsystemModel(WELD_SUBSYSTEM_RESOURCE);
         registration.registerOperationHandler(GenericSubsystemDescribeHandler.DEFINITION, GenericSubsystemDescribeHandler.INSTANCE);
         subsystem.registerXMLElementWriter(parser);
@@ -113,7 +111,7 @@ public class WeldExtension implements Extension {
             // Require no attributes or content
             requireNoAttributes(reader);
             requireNoContent(reader);
-            list.add(Operations.createAddOperation(PathAddress.pathAddress(PATH_SUBSYSTEM)));
+            list.add(Util.createAddOperation(PathAddress.pathAddress(PATH_SUBSYSTEM)));
         }
 
         /** {@inheritDoc} */
