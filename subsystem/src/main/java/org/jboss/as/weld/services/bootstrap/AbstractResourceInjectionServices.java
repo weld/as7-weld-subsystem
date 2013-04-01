@@ -20,7 +20,6 @@ import static org.jboss.weld.logging.messages.BeanMessage.INVALID_RESOURCE_PRODU
 
 import java.lang.reflect.Type;
 
-import javax.enterprise.inject.spi.BeanManager;
 import javax.enterprise.inject.spi.InjectionPoint;
 
 import org.jboss.as.ee.component.EEModuleDescription;
@@ -28,7 +27,6 @@ import org.jboss.as.naming.ContextListManagedReferenceFactory;
 import org.jboss.as.naming.ManagedReference;
 import org.jboss.as.naming.ManagedReferenceFactory;
 import org.jboss.as.naming.deployment.ContextNames;
-import org.jboss.as.weld.deployment.processors.WeldBeanManagerServiceProcessor;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.weld.exceptions.DefinitionException;
@@ -68,9 +66,6 @@ public abstract class AbstractResourceInjectionServices {
         if (factory instanceof ContextListManagedReferenceFactory && injectionPoint != null) {
             String resourceClassName = ((ContextListManagedReferenceFactory) factory).getInstanceClassName();
             validateResourceInjectionPointType(resourceClassName, injectionPoint);
-        }
-        if (factory instanceof WeldBeanManagerServiceProcessor.BeanManagerManagedReferenceFactory) {
-            validateResourceInjectionPointType(BeanManager.class, injectionPoint);
         }
         // otherwise, the validation is skipped as we have no information about the resource type
 

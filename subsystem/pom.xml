@@ -62,17 +62,6 @@
             </plugin>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <!-- Seems like a hacky way to pass multiple arguments, 
-                        but it's the only way it worked. -->
-                    <fork>true</fork>
-                    <compilerArgument>-Djava.endorsed.dirs=${project.build.directory}/endorsed"
-                        "-AgeneratedTranslationFilesPath=${project.build.directory}/generated-translation-files</compilerArgument>
-                </configuration>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <configuration>
                     <skip>true</skip>
@@ -151,6 +140,11 @@
         <dependency>
             <groupId>org.jboss.as</groupId>
             <artifactId>jboss-as-webservices-server-integration</artifactId>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.as</groupId>
+            <artifactId>jboss-as-security-util</artifactId>
         </dependency>
 
         <dependency>
