@@ -59,6 +59,12 @@
                 <groupId>javax.enterprise</groupId>
                 <artifactId>cdi-api</artifactId>
                 <version>${cdi.api.version}</version>
+                <exclusions>
+                    <exclusion>
+                        <groupId>org.jboss.spec.javax.interceptor</groupId>
+                        <artifactId>jboss-interceptors-api_1.1_spec</artifactId>
+                    </exclusion>
+                </exclusions>
             </dependency>
 
             <dependency>
