@@ -19,6 +19,7 @@ package org.jboss.as.weld.services.bootstrap;
 import static org.jboss.weld.logging.messages.BeanMessage.INVALID_RESOURCE_PRODUCER_TYPE;
 
 import java.lang.reflect.Type;
+import java.security.AccessController;
 
 import javax.enterprise.inject.spi.InjectionPoint;
 
@@ -27,6 +28,7 @@ import org.jboss.as.naming.ContextListManagedReferenceFactory;
 import org.jboss.as.naming.ManagedReference;
 import org.jboss.as.naming.ManagedReferenceFactory;
 import org.jboss.as.naming.deployment.ContextNames;
+import org.jboss.as.util.security.GetContextClassLoaderAction;
 import org.jboss.msc.service.ServiceController;
 import org.jboss.msc.service.ServiceRegistry;
 import org.jboss.weld.exceptions.DefinitionException;
@@ -64,8 +66,7 @@ public abstract class AbstractResourceInjectionServices {
          */
         final ManagedReferenceFactory factory = getManagedReferenceFactory(ejbBindInfo);
         if (factory instanceof ContextListManagedReferenceFactory && injectionPoint != null) {
-            String resourceClassName = ((ContextListManagedReferenceFactory) factory).getInstanceClassName();
-            validateResourceInjectionPointType(resourceClassName, injectionPoint);
+            validateResourceInjectionPointType((ContextListManagedReferenceFactory) factory, injectionPoint);
         }
         // otherwise, the validation is skipped as we have no information about the resource type
 
@@ -76,17 +77,18 @@ public abstract class AbstractResourceInjectionServices {
         }
     }
 
-    protected static void validateResourceInjectionPointType(String resourceClassName, InjectionPoint injectionPoint) {
-        Class<?> resourceClass = org.jboss.as.weld.util.Reflections.loadClass(resourceClassName, WeldResourceInjectionServices.class.getClassLoader());
+    protected static void validateResourceInjectionPointType(ContextListManagedReferenceFactory factory, InjectionPoint injectionPoint) {
+        // the resource class may come from JBoss AS
+        Class<?> resourceClass = org.jboss.as.weld.util.Reflections.loadClass(factory.getInstanceClassName(), factory.getClass().getClassLoader());
+        // or it may come from deployment
+        if (resourceClass == null) {
+            resourceClass = org.jboss.as.weld.util.Reflections.loadClass(factory.getInstanceClassName(), AccessController.doPrivileged(GetContextClassLoaderAction.getInstance()));
+        }
 
         if (resourceClass != null) {
             validateResourceInjectionPointType(resourceClass, injectionPoint);
-        } else {
-            if (Reflections.getRawType(injectionPoint.getType()).getName().equals(resourceClassName)) {
-                return;
-            }
-            throw new DefinitionException(INVALID_RESOURCE_PRODUCER_TYPE, injectionPoint.getAnnotated(), resourceClassName);
         }
+        // otherwise, the validation is skipped as we have no information about the resource type
     }
 
     protected static void validateResourceInjectionPointType(Class<?> resourceType, InjectionPoint injectionPoint) {
