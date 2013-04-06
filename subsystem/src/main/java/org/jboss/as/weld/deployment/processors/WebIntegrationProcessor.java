@@ -40,6 +40,7 @@ import org.jboss.as.web.common.WebComponentDescription;
 import org.jboss.as.weld.WeldDeploymentMarker;
 import org.jboss.as.weld.WeldLogger;
 import org.jboss.as.weld.webtier.jsp.JspInitializationListener;
+import org.jboss.metadata.javaee.spec.ParamValueMetaData;
 import org.jboss.metadata.web.jboss.JBossWebMetaData;
 import org.jboss.metadata.web.spec.FilterMappingMetaData;
 import org.jboss.metadata.web.spec.FilterMetaData;
@@ -64,6 +65,8 @@ public class WebIntegrationProcessor implements DeploymentUnitProcessor {
     private static final String CONVERSATION_FILTER_CLASS = ConversationFilter.class.getName();
     private static final String CONVERSATION_FILTER_NAME = "CDI Conversation Filter";
 
+    private static final ParamValueMetaData CONVERSATION_FILTER_INITIALIZED = new ParamValueMetaData();
+
     public WebIntegrationProcessor() {
 
         // create wbl listener
@@ -73,6 +76,8 @@ public class WebIntegrationProcessor implements DeploymentUnitProcessor {
         conversationFilterMetadata.setFilterClass(CONVERSATION_FILTER_CLASS);
         conversationFilterMetadata.setFilterName(CONVERSATION_FILTER_NAME);
         conversationFilterMetadata.setAsyncSupported(true);
+        CONVERSATION_FILTER_INITIALIZED.setParamName(ConversationFilter.CONVERSATION_FILTER_REGISTERED);
+        CONVERSATION_FILTER_INITIALIZED.setParamValue(Boolean.TRUE.toString());
     }
 
     @Override
@@ -149,6 +154,11 @@ public class WebIntegrationProcessor implements DeploymentUnitProcessor {
                     }
                     webMetaData.getFilters().add(conversationFilterMetadata);
                     registerAsComponent(CONVERSATION_FILTER_CLASS, module, deploymentUnit, applicationClasses);
+                    List<ParamValueMetaData> contextParams = webMetaData.getContextParams();
+                    if (contextParams == null) {
+                        webMetaData.setContextParams(new ArrayList<ParamValueMetaData>());
+                    }
+                    webMetaData.getContextParams().add(CONVERSATION_FILTER_INITIALIZED);
                 }
             }
 
@@ -162,5 +172,6 @@ public class WebIntegrationProcessor implements DeploymentUnitProcessor {
     private void registerAsComponent(String listener, EEModuleDescription module, DeploymentUnit deploymentUnit, EEApplicationClasses applicationClasses) {
         final WebComponentDescription componentDescription = new WebComponentDescription(listener, listener, module, deploymentUnit.getServiceName(), applicationClasses);
         module.addComponent(componentDescription);
+        deploymentUnit.addToAttachmentList(WebComponentDescription.WEB_COMPONENTS, componentDescription.getStartServiceName());
     }
 }
